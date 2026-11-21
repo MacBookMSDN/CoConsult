@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoConsult — Transparent Medical AI Collaboration Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1>CoConsult</h1>
+      <p class="subtitle" data-i18n="subtitle"></p>
+    </div>
+    <div class="header-right">
+      <!-- Trilingual Switcher -->
+      <div class="lang-switcher" role="group" aria-label="Language Switcher">
+        <button class="lang-btn active" data-lang="en" type="button">EN</button>
+        <button class="lang-btn" data-lang="zh" type="button">中文</button>
+        <button class="lang-btn" data-lang="it" type="button">IT</button>
+      </div>
+      <span class="status-pill simulated" data-i18n="statusSimulated"></span>
+    </div>
+  </header>
+
+  <!-- Role Switcher Navigation (3 Views in One Prototype) -->
+  <nav class="role-nav" aria-label="System Role Switcher">
+    <button class="nav-btn active" data-view="patient" type="button">
+      <span data-i18n="navPatientTitle"></span>
+      <span class="nav-sub" data-i18n="navPatientSub"></span>
+    </button>
+    <button class="nav-btn" data-view="doctor" type="button">
+      <span data-i18n="navDoctorTitle"></span>
+      <span class="nav-sub" data-i18n="navDoctorSub"></span>
+    </button>
+    <button class="nav-btn" data-view="shared" type="button">
+      <span data-i18n="navSharedTitle"></span>
+      <span class="nav-sub" data-i18n="navSharedSub"></span>
+    </button>
+  </nav>
+
+  <main class="container">
+    <!-- ================= VIEW 1: PATIENT ================= -->
+    <section id="view-patient" class="view-section active">
+      <div class="card">
+        <div class="card-header">
+          <h2 data-i18n="stage1Title"></h2>
+          <span class="badge implemented" data-i18n="badgeImplemented"></span>
+        </div>
+        <p class="helper-text" data-i18n-html="stage1Desc"></p>
+
+        <label for="symptom-input" class="input-label" data-i18n="symptomLabel"></label>
+        <textarea id="symptom-input" rows="4"></textarea>
+
+        <div class="action-row">
+          <button id="btn-load-sample" class="btn secondary" type="button" data-i18n="btnLoadSample"></button>
+          <button id="btn-ask-ai" class="btn primary" type="button" data-i18n="btnAskAI"></button>
+        </div>
+
+        <!-- Simulated AI Loading State -->
+        <div id="ai-loading" class="loading-box hidden">
+          <div class="spinner"></div>
+          <span data-i18n="aiLoadingText"></span>
+        </div>
+
+        <!-- Structured & Highlighted AI Output -->
+        <div id="ai-previsit-result" class="ai-card hidden">
+          <div class="ai-card-header">
+            <span class="badge ai-badge" data-i18n="badgeAIPrevisit"></span>
+            <span class="disclaimer-tag" data-i18n="aiDisclaimer"></span>
+          </div>
+          <div id="ai-previsit-body" class="ai-card-body"></div>
+
+          <!-- Transparency & Disclosure Control -->
+          <div class="disclosure-box">
+            <label class="checkbox-row">
+              <input type="checkbox" id="share-ai-checkbox" checked />
+              <span>
+                <strong data-i18n="shareCheckTitle"></strong>
+                <small data-i18n="shareCheckSub"></small>
+              </span>
+            </label>
+            <button id="btn-send-doctor" class="btn success" type="button" data-i18n="btnSendDoctor"></button>
+          </div>
+          <div id="patient-submit-feedback" class="feedback-banner hidden"></div>
+        </div>
+      </div>
+
+      <!-- Placeholder for Commit 2 -->
+      <div class="card muted-card">
+        <div class="card-header">
+          <h3 data-i18n="v2PatientTitle"></h3>
+          <span class="badge planned" data-i18n="badgeNextV2"></span>
+        </div>
+        <p class="helper-text" data-i18n="v2PatientDesc"></p>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: DOCTOR ================= -->
+    <section id="view-doctor" class="view-section">
+      <div class="card">
+        <div class="card-header">
+          <h2 data-i18n="docPanelTitle"></h2>
+          <span class="badge doctor-badge" data-i18n="badgeDoctorPanel"></span>
+        </div>
+
+        <div id="doctor-empty-state" class="empty-state">
+          <p data-i18n="docEmptyTitle"></p>
+          <p class="helper-text" data-i18n-html="docEmptyDesc"></p>
+        </div>
+
+        <div id="doctor-patient-card" class="hidden">
+          <div class="info-block">
+            <h3 data-i18n="docSymptomsHeading"></h3>
+            <p id="doc-patient-symptoms" class="quote-box"></p>
+          </div>
+
+          <div id="doc-ai-shared-box" class="info-block ai-review-block hidden">
+            <div class="block-title-row">
+              <h3 data-i18n="docAISharedHeading"></h3>
+              <span class="badge ai-badge" data-i18n="badgeAISimulated"></span>
+            </div>
+            <div id="doc-ai-summary-content"></div>
+          </div>
+
+          <div id="doc-ai-hidden-notice" class="notice-warning hidden" data-i18n-html="docAIHiddenNotice"></div>
+        </div>
+      </div>
+
+      <!-- Placeholder for Commit 2 & 3 -->
+      <div class="card muted-card">
+        <div class="card-header">
+          <h3 data-i18n="v2DoctorTitle"></h3>
+          <span class="badge planned" data-i18n="badgeNextV2V3"></span>
+        </div>
+        <p class="helper-text" data-i18n="v2DoctorDesc"></p>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: SHARED DISPLAY ================= -->
+    <section id="view-shared" class="view-section">
+      <div class="card shared-lock-card">
+        <div class="card-header">
+          <h2 data-i18n="sharedTitle"></h2>
+          <span class="badge doctor-badge" data-i18n="badgeDoctorGated"></span>
+        </div>
+        <div class="lock-box">
+          <p class="lock-title" data-i18n="sharedLockTitle"></p>
+          <p class="helper-text" data-i18n-html="sharedLockDesc"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Load language pack before main app logic -->
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
