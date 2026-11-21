@@ -15,6 +15,8 @@
   --highlight-text: #92400e;
   --danger-bg: #fee2e2;
   --danger-text: #991b1b;
+  --ok-bg: #dcfce7;
+  --ok-text: #166534;
 }
 
 * {
@@ -150,7 +152,7 @@ body {
 
 /* Main Container */
 .container {
-  max-width: 920px;
+  max-width: 940px;
   margin: 24px auto;
   padding: 0 20px 48px;
 }
@@ -208,8 +210,8 @@ body {
 }
 
 .badge.implemented {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--ok-bg);
+  color: var(--ok-text);
 }
 
 .badge.planned {
@@ -235,17 +237,20 @@ body {
   margin: 14px 0 6px;
 }
 
-textarea {
+textarea, input[type="text"] {
   width: 100%;
-  padding: 12px;
+  padding: 11px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.95rem;
+}
+
+textarea {
   resize: vertical;
 }
 
-textarea:focus {
+textarea:focus, input[type="text"]:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
@@ -328,7 +333,7 @@ textarea:focus {
 
 .ai-section-block h4 {
   margin: 0 0 6px;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   color: var(--ai-text);
 }
 
@@ -338,7 +343,7 @@ textarea:focus {
 }
 
 .ai-section-block li {
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .key-term {
@@ -357,6 +362,188 @@ textarea:focus {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.85rem;
+}
+
+.normal-tag {
+  display: inline-block;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Lab Markers Grid */
+.marker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.marker-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.marker-card.abnormal {
+  border-left: 4px solid #dc2626;
+  background: #fffafa;
+}
+
+.marker-card.normal {
+  border-left: 4px solid #16a34a;
+}
+
+.marker-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.marker-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.marker-explain {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+/* Upload Box */
+.upload-box {
+  background: #f8fafc;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.file-preview {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.file-chip {
+  background: #e0f2fe;
+  color: #075985;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+.thumb-img {
+  max-height: 90px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+/* Orders Banner */
+.orders-banner {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  color: #1e3a8a;
+}
+
+.orders-banner ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+/* Free-Text Q&A */
+.qa-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--ai-border);
+}
+
+.qa-input-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.qa-input-row input {
+  flex: 1;
+}
+
+.qa-history {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qa-item {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.qa-user-q {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.qa-ai-a {
+  font-size: 0.91rem;
+  color: #334155;
+}
+
+.saved-questions-box {
+  margin-top: 14px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.saved-questions-box h4 {
+  margin: 0 0 6px;
+  color: #92400e;
+}
+
+.saved-questions-box ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Doctor Orders Panel */
+.order-panel {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+
+.doc-q-list {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  padding: 12px 16px 12px 32px;
+  border-radius: 6px;
+  margin: 8px 0 0;
 }
 
 /* Disclosure & Feedback */
@@ -387,10 +574,10 @@ textarea:focus {
 }
 
 .feedback-banner {
-  margin-top: 12px;
+  margin-top: 10px;
   padding: 10px 14px;
-  background: #dcfce7;
-  color: #166534;
+  background: var(--ok-bg);
+  color: var(--ok-text);
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;

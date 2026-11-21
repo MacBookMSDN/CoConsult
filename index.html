@@ -14,7 +14,6 @@
       <p class="subtitle" data-i18n="subtitle"></p>
     </div>
     <div class="header-right">
-      <!-- Trilingual Switcher -->
       <div class="lang-switcher" role="group" aria-label="Language Switcher">
         <button class="lang-btn active" data-lang="en" type="button">EN</button>
         <button class="lang-btn" data-lang="zh" type="button">中文</button>
@@ -24,7 +23,7 @@
     </div>
   </header>
 
-  <!-- Role Switcher Navigation (3 Views in One Prototype) -->
+  <!-- Role Switcher Navigation -->
   <nav class="role-nav" aria-label="System Role Switcher">
     <button class="nav-btn active" data-view="patient" type="button">
       <span data-i18n="navPatientTitle"></span>
@@ -43,6 +42,7 @@
   <main class="container">
     <!-- ================= VIEW 1: PATIENT ================= -->
     <section id="view-patient" class="view-section active">
+      <!-- Stage 1: Pre-Visit -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="stage1Title"></h2>
@@ -58,13 +58,11 @@
           <button id="btn-ask-ai" class="btn primary" type="button" data-i18n="btnAskAI"></button>
         </div>
 
-        <!-- Simulated AI Loading State -->
         <div id="ai-loading" class="loading-box hidden">
           <div class="spinner"></div>
           <span data-i18n="aiLoadingText"></span>
         </div>
 
-        <!-- Structured & Highlighted AI Output -->
         <div id="ai-previsit-result" class="ai-card hidden">
           <div class="ai-card-header">
             <span class="badge ai-badge" data-i18n="badgeAIPrevisit"></span>
@@ -72,7 +70,6 @@
           </div>
           <div id="ai-previsit-body" class="ai-card-body"></div>
 
-          <!-- Transparency & Disclosure Control -->
           <div class="disclosure-box">
             <label class="checkbox-row">
               <input type="checkbox" id="share-ai-checkbox" checked />
@@ -87,18 +84,79 @@
         </div>
       </div>
 
-      <!-- Placeholder for Commit 2 -->
-      <div class="card muted-card">
+      <!-- Stage 3: Lab Report & Scan Upload + Plain-Language AI Explainer + Free-Text Q&A -->
+      <div class="card">
         <div class="card-header">
-          <h3 data-i18n="v2PatientTitle"></h3>
-          <span class="badge planned" data-i18n="badgeNextV2"></span>
+          <h2 data-i18n="stage3Title"></h2>
+          <span class="badge implemented" data-i18n="badgeImplemented"></span>
         </div>
-        <p class="helper-text" data-i18n="v2PatientDesc"></p>
+        <p class="helper-text" data-i18n-html="stage3Desc"></p>
+
+        <!-- Shows Doctor's Ordered Tests if confirmed -->
+        <div id="patient-orders-banner" class="orders-banner hidden">
+          <strong data-i18n="ordersReceivedTitle"></strong>
+          <ul id="patient-orders-list"></ul>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-box">
+          <label for="lab-file-input" class="input-label" data-i18n="uploadLabel"></label>
+          <input type="file" id="lab-file-input" accept="image/*,.pdf" />
+
+          <div class="action-row">
+            <button id="btn-load-sample-lab" class="btn secondary" type="button" data-i18n="btnLoadSampleLab"></button>
+            <button id="btn-analyse-lab" class="btn primary" type="button" data-i18n="btnAnalyseLab"></button>
+          </div>
+
+          <div id="uploaded-file-preview" class="file-preview hidden">
+            <span id="uploaded-file-name" class="file-chip"></span>
+            <img id="uploaded-image-thumb" class="thumb-img hidden" alt="Uploaded medical scan preview" />
+          </div>
+        </div>
+
+        <!-- Simulated AI Lab Loading -->
+        <div id="lab-ai-loading" class="loading-box hidden">
+          <div class="spinner"></div>
+          <span data-i18n="labLoadingText"></span>
+        </div>
+
+        <!-- Highlighted Lab & Scan Explanation -->
+        <div id="lab-ai-result" class="ai-card hidden">
+          <div class="ai-card-header">
+            <span class="badge ai-badge" data-i18n="badgeAILab"></span>
+            <span class="disclaimer-tag" data-i18n="labDisclaimer"></span>
+          </div>
+          <div id="lab-ai-body"></div>
+
+          <!-- Free-Text Follow-Up Q&A (No restrictive chips) -->
+          <div class="qa-section">
+            <h3 data-i18n="qaTitle"></h3>
+            <p class="helper-text" data-i18n="qaDesc"></p>
+            <div class="qa-input-row">
+              <input type="text" id="qa-input" />
+              <button id="btn-qa-send" class="btn primary" type="button" data-i18n="btnQASend"></button>
+            </div>
+            <div id="qa-history" class="qa-history"></div>
+          </div>
+
+          <!-- Saved Questions for Doctor (Safety Fallback List) -->
+          <div id="doctor-questions-box" class="saved-questions-box hidden">
+            <h4 data-i18n="savedQuestionsTitle"></h4>
+            <ul id="doctor-questions-list"></ul>
+          </div>
+
+          <!-- Sync Lab + Questions to Doctor -->
+          <div class="disclosure-box">
+            <button id="btn-send-lab-doctor" class="btn success" type="button" data-i18n="btnSendLabDoctor"></button>
+            <div id="lab-submit-feedback" class="feedback-banner hidden"></div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ================= VIEW 2: DOCTOR ================= -->
     <section id="view-doctor" class="view-section">
+      <!-- Stage 1 & 2: Incoming Pre-Visit Brief + Clinical Orders -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docPanelTitle"></h2>
@@ -125,16 +183,60 @@
           </div>
 
           <div id="doc-ai-hidden-notice" class="notice-warning hidden" data-i18n-html="docAIHiddenNotice"></div>
+
+          <!-- Stage 2: Doctor Orders Tests -->
+          <div class="order-panel">
+            <h3 data-i18n="stage2Title"></h3>
+            <p class="helper-text" data-i18n="stage2Desc"></p>
+            <div class="order-list">
+              <label class="checkbox-row">
+                <input type="checkbox" id="order-lft" checked />
+                <span data-i18n="orderLFT"></span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="order-ultrasound" checked />
+                <span data-i18n="orderUltrasound"></span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="order-cbc" />
+                <span data-i18n="orderCBC"></span>
+              </label>
+            </div>
+            <button id="btn-confirm-orders" class="btn primary" type="button" data-i18n="btnConfirmOrders"></button>
+            <div id="doc-order-feedback" class="feedback-banner hidden"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Placeholder for Commit 2 & 3 -->
+      <!-- Stage 3 Incoming Lab Report & Patient Questions -->
+      <div class="card">
+        <div class="card-header">
+          <h2 data-i18n="docLabHeading"></h2>
+          <span class="badge implemented" data-i18n="badgeImplemented"></span>
+        </div>
+
+        <div id="doc-lab-empty" class="empty-state">
+          <p class="helper-text" data-i18n="docLabEmpty"></p>
+        </div>
+
+        <div id="doc-lab-content" class="hidden">
+          <div id="doc-lab-summary-body"></div>
+
+          <div id="doc-questions-wrap" class="info-block">
+            <h3 data-i18n="docQuestionsHeading"></h3>
+            <p id="doc-no-questions" class="helper-text" data-i18n="docNoQuestions"></p>
+            <ul id="doc-questions-list" class="doc-q-list hidden"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder for Commit 3 (v3) -->
       <div class="card muted-card">
         <div class="card-header">
-          <h3 data-i18n="v2DoctorTitle"></h3>
-          <span class="badge planned" data-i18n="badgeNextV2V3"></span>
+          <h3 data-i18n="v3DoctorTitle"></h3>
+          <span class="badge planned" data-i18n="badgeNextV3"></span>
         </div>
-        <p class="helper-text" data-i18n="v2DoctorDesc"></p>
+        <p class="helper-text" data-i18n="v3DoctorDesc"></p>
       </div>
     </section>
 
@@ -153,7 +255,6 @@
     </section>
   </main>
 
-  <!-- Load language pack before main app logic -->
   <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
