@@ -1,12 +1,54 @@
 // =========================================================
-// CoConsult v3.1 (Final Prototype) — Complete Workflow Engine
+// CoConsult v3.2 (Final Prototype + Live Vision API)
 // Implemented: 3-view UI, trilingual i18n, preliminary doctor
 //   feedback & searchable EHR orders, tiered privacy Q&A with
 //   clinician audit/correction, diagnosis reconciliation,
 //   clinician-gated Shared Display, accessibility mode, and
-//   Option B (Default Simulated + Optional BYOK Live API with
-//   cross-stage clinical context memory).
+//   Option B (Default Simulated + Optional BYOK Live Vision &
+//   Text LLM API with cross-stage clinical context memory).
 // =========================================================
+
+const VISION_I18N = {
+  en: {
+    badgeLive: "AI Lab & Scan Explainer (Live Vision API)",
+    loadingLive: "Sending uploaded image to Live Vision API for plain-language analysis...",
+    summaryHeading: "Image / Report Observations (Plain Language)",
+    impressionHeading: "AI Preliminary Impression (Pending Doctor Verification)",
+    limitLabel: "Limitation:",
+    statusAbnormal: "ABNORMAL",
+    statusNormal: "NORMAL",
+    fallbackNote:
+      "Live Vision API could not process this image (check API key, CORS, or ensure you selected a vision-capable model like Gemini Flash / GPT-4o-mini). Safely fell back to Simulated Mode.",
+    pdfNote:
+      "Direct browser Live Vision currently reads image files (JPG / PNG). Showing the simulated liver report fallback for this PDF.",
+  },
+  zh: {
+    badgeLive: "AI 化验单与影像解读（真实 API 识图）",
+    loadingLive: "正在将上传的图片发送至真实大模型识图分析...",
+    summaryHeading: "图片 / 报告核心内容（大白话解读）",
+    impressionHeading: "AI 初步倾向（仅供医生参考，尚未核准）",
+    limitLabel: "AI 局限提示：",
+    statusAbnormal: "异常 / 需关注",
+    statusNormal: "正常",
+    fallbackNote:
+      "真实 API 识图未能完成（请检查 Key、跨域限制，或确认所选模型支持看图，如 Gemini Flash / GPT-4o-mini）。已自动安全回退至模拟模式。",
+    pdfNote:
+      "纯网页端真实识图目前仅支持图片格式（JPG / PNG），PDF 文件已自动使用模拟肝功能报告演示。",
+  },
+  it: {
+    badgeLive: "Spiegazione Referti IA (API Vision Live)",
+    loadingLive: "Invio dell'immagine caricata all'API Vision Live...",
+    summaryHeading: "Osservazioni Immagine / Referto (Linguaggio Semplice)",
+    impressionHeading: "Ipotesi Preliminare IA (In Attesa di Verifica Medica)",
+    limitLabel: "Limite dell'IA:",
+    statusAbnormal: "ANOMALO",
+    statusNormal: "NORMALE",
+    fallbackNote:
+      "L'API Vision Live non ha potuto analizzare questa immagine (controlla chiave, CORS o usa un modello multimodale come Gemini Flash / GPT-4o-mini). Ripristinata la Modalità Simulata.",
+    pdfNote:
+      "L'API Vision nel browser legge direttamente file immagine (JPG / PNG). Per i PDF viene mostrato il referto simulato.",
+  },
+};
 
 const appState = {
   lang: "en",
@@ -31,16 +73,22 @@ const appState = {
   confirmedPrelimIsDefault: true,
   selectedOrders: [{ id: "lft" }, { id: "abd_us" }],
   ordersConfirmed: false,
-  // Lab Upload & Tiered-Privacy Q&A with Clinician Audit
+  // Lab Upload (with Live Vision support) & Tiered-Privacy Q&A
   labLoaded: false,
   labIsSample: false,
   labFileName: "",
+  labImageDataUrl: null, // Compressed base64 JPEG data URL for Live Vision API
   labAnalysed: false,
+  labUsedLive: false,
+  labLiveHTML: null,
+  labLiveSummaryText: null,
+  labLiveImpression: null,
+  labNoticeKey: null, // "fallbackNote" | "pdfNote" | null
   nextQaId: 1,
   qaLog: [], // [{ id, question, answerKey, liveAnswerText, isLive }]
-  selectedQuestionIds: [], // array of qaLog item IDs opted in by patient
+  selectedQuestionIds: [],
   questionAudits: {}, // { [qaId]: { status: "unreviewed"|"accurate"|"corrected", doctorNote: "" } }
-  shareQuestionsWithDoctor: false, // unchecked by default for shy patients
+  shareQuestionsWithDoctor: false,
   labSentToDoctor: false,
   // Final Diagnosis & Shared Display Gate
   doctorDecision: "override", // "agree" | "override"
@@ -84,8 +132,35 @@ function getQaAnswerHTML(entry, lang) {
   return TRANSLATIONS[lang].qaAnswers[entry.answerKey];
 }
 
+function compressImageDataUrl(dataUrl, maxDim = 1280) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return resolve(dataUrl);
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      } catch {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 // ---------------------------------------------------------
-// 1. Cross-Stage Context Memory Builder & Live API Client
+// 1. Cross-Stage Context Memory Builder & Multimodal API Client
 // ---------------------------------------------------------
 function buildClinicalContextSnapshot() {
   const lines = [];
@@ -109,9 +184,15 @@ function buildClinicalContextSnapshot() {
   }
 
   if (appState.labAnalysed) {
-    lines.push(
-      `Uploaded Lab/Scan Report (${appState.labFileName || "Sample Liver Panel"}): ALT 118 U/L (High, ref 7-56), AST 74 U/L (High, ref 10-40), Total Bilirubin 14 µmol/L (Normal, ref 3-20). Abdominal Ultrasound: mildly increased liver echogenicity, no masses or gallstones. AI Preliminary Draft: Mild Non-Alcoholic Fatty Liver (NAFLD).`
-    );
+    if (appState.labUsedLive && appState.labLiveSummaryText) {
+      lines.push(
+        `Uploaded Medical Image Analysis (${appState.labFileName}, Live Vision API): ${appState.labLiveSummaryText}`
+      );
+    } else {
+      lines.push(
+        `Uploaded Lab/Scan Report (${appState.labFileName || "Sample Liver Panel"}): ALT 118 U/L (High, ref 7-56), AST 74 U/L (High, ref 10-40), Total Bilirubin 14 µmol/L (Normal, ref 3-20). Abdominal Ultrasound: mildly increased liver echogenicity, no masses or gallstones. AI Preliminary Draft: Mild Non-Alcoholic Fatty Liver (NAFLD).`
+      );
+    }
   } else {
     lines.push("Lab/Scan Report: (Not uploaded/analysed yet)");
   }
@@ -143,8 +224,15 @@ function isLiveApiEnabled() {
   );
 }
 
-async function callLiveLLM(systemPrompt, userPrompt) {
+async function callLiveLLM(systemPrompt, userPrompt, imageDataUrl = null) {
   const { endpoint, model, apiKey } = appState.apiConfig;
+  const userContent = imageDataUrl
+    ? [
+        { type: "text", text: userPrompt },
+        { type: "image_url", image_url: { url: imageDataUrl } },
+      ]
+    : userPrompt;
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -156,7 +244,7 @@ async function callLiveLLM(systemPrompt, userPrompt) {
       temperature: 0.3,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userContent },
       ],
     }),
   });
@@ -218,14 +306,12 @@ function applyLanguage(lang) {
     if (dict[key]) el.innerHTML = dict[key];
   });
 
-  // Placeholders
   symptomInput.placeholder = dict.symptomPlaceholder;
   qaInput.placeholder = dict.qaPlaceholder;
   orderSearchInput.placeholder = dict.orderSearchPlaceholder;
   docCustomReason.placeholder = dict.customReasonPlaceholder;
   apiKeyInput.placeholder = dict.apiKeyPlaceholder;
 
-  // Keep unedited default clinical notes synced to language
   if (!appState.prelimNoteEdited) {
     docPrelimNote.value = dict.defaultPrelimNote;
   }
@@ -257,7 +343,7 @@ function applyLanguage(lang) {
     uploadedFileName.textContent = dict.sampleFileLabel;
   }
   if (appState.labAnalysed) {
-    labAIBody.innerHTML = dict.labReportHTML;
+    renderLabOutput();
     renderQAHistory();
     renderSavedQuestions();
   }
@@ -462,7 +548,6 @@ function renderPreVisitOutput() {
 }
 
 function formatLivePreVisitCard(rawText) {
-  // Attempt to parse structured JSON; fallback to clean escaped bullets
   try {
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
@@ -760,7 +845,7 @@ btnConfirmOrders.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------
-// 8. Patient Lab Upload, AI Explainer & Tiered-Privacy Q&A
+// 8. Patient Lab Upload (Simulated + Live Vision) & Q&A
 // ---------------------------------------------------------
 const labFileInput = document.getElementById("lab-file-input");
 const btnLoadSampleLab = document.getElementById("btn-load-sample-lab");
@@ -769,7 +854,9 @@ const uploadedFilePreview = document.getElementById("uploaded-file-preview");
 const uploadedFileName = document.getElementById("uploaded-file-name");
 const uploadedImageThumb = document.getElementById("uploaded-image-thumb");
 const labAILoading = document.getElementById("lab-ai-loading");
+const labAILoadingText = labAILoading.querySelector("span");
 const labAIResult = document.getElementById("lab-ai-result");
+const labAIBadge = labAIResult.querySelector(".ai-card-header .badge");
 const labAIBody = document.getElementById("lab-ai-body");
 
 const btnQASend = document.getElementById("btn-qa-send");
@@ -781,6 +868,14 @@ const shareQuestionsCheckbox = document.getElementById("share-questions-checkbox
 const btnSendLabDoctor = document.getElementById("btn-send-lab-doctor");
 const labSubmitFeedback = document.getElementById("lab-submit-feedback");
 
+function resetLabAnalysisCache() {
+  appState.labUsedLive = false;
+  appState.labLiveHTML = null;
+  appState.labLiveSummaryText = null;
+  appState.labLiveImpression = null;
+  appState.labNoticeKey = null;
+}
+
 labFileInput.addEventListener("change", (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -788,14 +883,18 @@ labFileInput.addEventListener("change", (event) => {
   appState.labLoaded = true;
   appState.labIsSample = false;
   appState.labFileName = file.name;
+  appState.labImageDataUrl = null;
+  resetLabAnalysisCache();
 
   uploadedFileName.textContent = `📎 ${file.name}`;
   uploadedFilePreview.classList.remove("hidden");
 
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedImageThumb.src = e.target.result;
+    reader.onload = async (e) => {
+      const compressed = await compressImageDataUrl(e.target.result, 1280);
+      appState.labImageDataUrl = compressed;
+      uploadedImageThumb.src = compressed;
       uploadedImageThumb.classList.remove("hidden");
     };
     reader.readAsDataURL(file);
@@ -808,26 +907,191 @@ btnLoadSampleLab.addEventListener("click", () => {
   appState.labLoaded = true;
   appState.labIsSample = true;
   appState.labFileName = "Liver_Function_Panel_and_Ultrasound.pdf";
+  appState.labImageDataUrl = null;
+  resetLabAnalysisCache();
+
   uploadedFileName.textContent = TRANSLATIONS[appState.lang].sampleFileLabel;
   uploadedImageThumb.classList.add("hidden");
   uploadedFilePreview.classList.remove("hidden");
 });
 
-btnAnalyseLab.addEventListener("click", () => {
+function formatLiveLabReport(rawText, lang) {
+  const v = VISION_I18N[lang];
+  try {
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+
+    const markers = Array.isArray(parsed.markers) ? parsed.markers : [];
+    const markerCardsHTML =
+      markers.length > 0
+        ? `
+          <div class="marker-grid">
+            ${markers
+              .map((m) => {
+                const isAbnormal = String(m.status || "").toLowerCase() === "abnormal";
+                const statusBadge = isAbnormal
+                  ? `<span class="urgency-tag">${escapeHTML(m.value || v.statusAbnormal)}</span>`
+                  : `<span class="normal-tag">${escapeHTML(m.value || v.statusNormal)}</span>`;
+                return `
+                  <div class="marker-card ${isAbnormal ? "abnormal" : "normal"}">
+                    <div class="marker-top">
+                      <strong>${escapeHTML(m.name || "Item")}</strong>
+                      ${statusBadge}
+                    </div>
+                    <p class="marker-explain">${escapeHTML(m.plainMeaning || "")}</p>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        `
+        : "";
+
+    const visualSummary = parsed.visualSummary || "";
+    const impression = parsed.preliminaryImpression || "";
+    const limitation = parsed.limitation || "";
+
+    const html = `
+      ${markerCardsHTML}
+      ${
+        visualSummary
+          ? `
+            <div class="ai-section-block">
+              <h4>${escapeHTML(v.summaryHeading)}</h4>
+              <p style="margin:0;">${escapeHTML(visualSummary)}</p>
+            </div>
+          `
+          : ""
+      }
+      <div class="ai-section-block accessible-hide">
+        <h4>${escapeHTML(v.impressionHeading)}</h4>
+        <ul>
+          ${impression ? `<li><span class="key-term">${escapeHTML(impression)}</span></li>` : ""}
+          ${limitation ? `<li><strong>${escapeHTML(v.limitLabel)}</strong> ${escapeHTML(limitation)}</li>` : ""}
+        </ul>
+      </div>
+    `;
+
+    const summaryParts = [];
+    if (markers.length > 0) {
+      summaryParts.push(
+        "Extracted markers: " +
+          markers.map((m) => `${m.name}: ${m.value} (${m.status})`).join("; ")
+      );
+    }
+    if (visualSummary) summaryParts.push(`Observations: ${visualSummary}`);
+    if (impression) summaryParts.push(`AI Preliminary Draft: ${impression}`);
+
+    return {
+      html,
+      summaryText: summaryParts.join(" | ") || rawText,
+      impression: impression || null,
+    };
+  } catch {
+    return {
+      html: `
+        <div class="ai-section-block">
+          <h4>${escapeHTML(v.summaryHeading)}</h4>
+          <p style="margin:0;">${escapeHTML(rawText).replace(/\n/g, "<br>")}</p>
+        </div>
+      `,
+      summaryText: rawText,
+      impression: null,
+    };
+  }
+}
+
+function getActiveLabHTML(lang) {
+  if (appState.labUsedLive && appState.labLiveHTML) {
+    return appState.labLiveHTML;
+  }
+  return TRANSLATIONS[lang].labReportHTML;
+}
+
+function renderLabOutput() {
+  const dict = TRANSLATIONS[appState.lang];
+  const v = VISION_I18N[appState.lang];
+
+  if (appState.labUsedLive && appState.labLiveHTML) {
+    labAIBadge.textContent = v.badgeLive;
+    labAIBadge.className = "badge live-badge";
+    labAIBody.innerHTML = appState.labLiveHTML;
+  } else {
+    labAIBadge.textContent = dict.badgeAILab;
+    labAIBadge.className = "badge ai-badge";
+    const noticeHTML = appState.labNoticeKey
+      ? `<div class="notice-warning" style="margin-top:0; margin-bottom:12px;">${escapeHTML(v[appState.labNoticeKey])}</div>`
+      : "";
+    labAIBody.innerHTML = noticeHTML + dict.labReportHTML;
+  }
+}
+
+btnAnalyseLab.addEventListener("click", async () => {
+  const dict = TRANSLATIONS[appState.lang];
+  const v = VISION_I18N[appState.lang];
+
   if (!appState.labLoaded) {
-    alert(TRANSLATIONS[appState.lang].alertNoLab);
+    alert(dict.alertNoLab);
     return;
   }
 
   labAIResult.classList.add("hidden");
+  appState.labNoticeKey = null;
+
+  // Live Vision API path when enabled and user uploaded a real JPG/PNG image
+  if (isLiveApiEnabled() && !appState.labIsSample) {
+    if (appState.labImageDataUrl) {
+      labAILoadingText.textContent = v.loadingLive;
+      labAILoading.classList.remove("hidden");
+
+      try {
+        const context = buildClinicalContextSnapshot();
+        const sysPrompt = `You are CoConsult, a transparent medical report & image plain-language explainer. NEVER give a final diagnosis. Examine the uploaded image carefully (whether it is a lab report, medical scan, or general photo). Reply ONLY in valid JSON using ${getLanguageName(appState.lang)} with keys:
+- "markers": array of 0-6 objects {"name": string, "value": string, "status": "abnormal" or "normal", "plainMeaning": short plain-language explanation}. (Leave empty array if no numeric lab values are visible.)
+- "visualSummary": 2-3 clear plain-language sentences describing what is seen in the image.
+- "preliminaryImpression": short cautious preliminary takeaway for the doctor to review (or note if the image is not a medical report).
+- "limitation": 1 sentence noting why a doctor's in-person review is still required.`;
+
+        const userPrompt = `Please explain this uploaded image in plain language for the patient, keeping this prior context in mind:\n${context}`;
+        const rawReply = await callLiveLLM(sysPrompt, userPrompt, appState.labImageDataUrl);
+        const formatted = formatLiveLabReport(rawReply, appState.lang);
+
+        appState.labUsedLive = true;
+        appState.labLiveHTML = formatted.html;
+        appState.labLiveSummaryText = formatted.summaryText;
+        appState.labLiveImpression = formatted.impression;
+      } catch {
+        resetLabAnalysisCache();
+        appState.labNoticeKey = "fallbackNote";
+      }
+
+      appState.labAnalysed = true;
+      renderLabOutput();
+      labAILoading.classList.add("hidden");
+      labAIResult.classList.remove("hidden");
+      refreshContextInspector();
+      if (appState.labSentToDoctor) renderDoctorLabSection();
+      return;
+    } else {
+      // Uploaded a non-image file (e.g. PDF) while in Live API mode
+      resetLabAnalysisCache();
+      appState.labNoticeKey = "pdfNote";
+    }
+  } else {
+    resetLabAnalysisCache();
+  }
+
+  // Simulated fallback path
+  labAILoadingText.textContent = dict.labLoadingText;
   labAILoading.classList.remove("hidden");
 
   setTimeout(() => {
     appState.labAnalysed = true;
-    labAIBody.innerHTML = TRANSLATIONS[appState.lang].labReportHTML;
+    renderLabOutput();
     labAILoading.classList.add("hidden");
     labAIResult.classList.remove("hidden");
     refreshContextInspector();
+    if (appState.labSentToDoctor) renderDoctorLabSection();
   }, 500);
 });
 
@@ -933,7 +1197,7 @@ async function handleQASubmit() {
     qaLoading.classList.remove("hidden");
     try {
       const context = buildClinicalContextSnapshot();
-      const sysPrompt = `You are CoConsult, a plain-language clinical explanation assistant. Reply concisely (2-4 short sentences) in ${getLanguageName(appState.lang)}. Always ground your answer in the patient's clinical context below (including uploaded lab results). Never give a definitive diagnosis or prescribe medication; encourage discussing personalised decisions with their doctor.\n\nCLINICAL CONTEXT:\n${context}`;
+      const sysPrompt = `You are CoConsult, a plain-language clinical explanation assistant. Reply concisely (2-4 short sentences) in ${getLanguageName(appState.lang)}. Always ground your answer in the patient's clinical context below (including uploaded lab/image findings). Never give a definitive diagnosis or prescribe medication; encourage discussing personalised decisions with their doctor.\n\nCLINICAL CONTEXT:\n${context}`;
       const liveText = await callLiveLLM(sysPrompt, question);
       appState.qaLog.push({
         id: qaId,
@@ -1069,7 +1333,7 @@ function renderDoctorLabSection() {
 
   docLabEmpty.classList.add("hidden");
   docLabContent.classList.remove("hidden");
-  docLabSummaryBody.innerHTML = TRANSLATIONS[appState.lang].labReportHTML;
+  docLabSummaryBody.innerHTML = getActiveLabHTML(appState.lang);
 
   docFinalEmpty.classList.add("hidden");
   docFinalControls.classList.remove("hidden");
@@ -1141,7 +1405,6 @@ btnApproveShared.addEventListener("click", () => {
   if (reasonLifestyle.checked) reasonKeys.push("reasonLifestyle");
   if (reasonHistory.checked) reasonKeys.push("reasonHistory");
 
-  // Capture audited Q&A items if patient opted in to share
   const auditedQA = appState.shareQuestionsWithDoctor
     ? appState.selectedQuestionIds
         .map((id) => {
@@ -1169,6 +1432,7 @@ btnApproveShared.addEventListener("click", () => {
     useDefaultPlan: !appState.carePlanEdited,
     customPlanText: docCarePlan.value.trim(),
     auditedQA,
+    aiDraftLabel: appState.labUsedLive && appState.labLiveImpression ? appState.labLiveImpression : null,
   };
 
   appState.sharedApproved = true;
@@ -1235,7 +1499,6 @@ function renderSharedDisplay() {
   const dict = TRANSLATIONS[appState.lang];
   const snap = appState.approvedSnapshot;
 
-  // 1. Final Diagnosis & Care Plan
   const finalDiagDisplay = snap.useDefaultDiag
     ? snap.decision === "agree"
       ? dict.defaultAgreeDiag
@@ -1247,7 +1510,8 @@ function renderSharedDisplay() {
     ? dict.defaultCarePlan
     : snap.customPlanText || dict.defaultCarePlan;
 
-  // 2. Alignment vs. Override Reconciliation
+  const aiDraftDisplay = snap.aiDraftLabel || dict.compareAIDraftText;
+
   if (snap.decision === "agree") {
     sharedReconciliationBox.className = "card reconcile-aligned";
     sharedReconciliationBox.innerHTML = `
@@ -1301,7 +1565,7 @@ function renderSharedDisplay() {
       <div class="compare-grid">
         <div class="compare-box ai-side">
           <span class="badge ai-badge">${escapeHTML(dict.compareAILabel)}</span>
-          <p><strong>${escapeHTML(dict.compareAIDraftText)}</strong></p>
+          <p><strong>${escapeHTML(aiDraftDisplay)}</strong></p>
         </div>
         <div class="compare-box doc-side">
           <span class="badge doctor-verified-badge">${escapeHTML(dict.compareDocLabel)}</span>
@@ -1315,10 +1579,8 @@ function renderSharedDisplay() {
     `;
   }
 
-  // 3. Plain-Language Lab Summary
-  sharedLabSummary.innerHTML = dict.labReportHTML;
+  sharedLabSummary.innerHTML = getActiveLabHTML(appState.lang);
 
-  // 4. Audited Patient Discussion Questions (Highlights Doctor Corrections)
   if (snap.auditedQA && snap.auditedQA.length > 0) {
     sharedQuestionsCard.classList.remove("hidden");
     sharedQuestionsList.innerHTML = snap.auditedQA
@@ -1369,7 +1631,6 @@ sharedReconciliationBox.addEventListener("click", async (e) => {
 
   appState.reconcileExplainerOpen = !appState.reconcileExplainerOpen;
 
-  // If Live API is enabled and we haven't fetched a tailored live explanation yet
   if (
     appState.reconcileExplainerOpen &&
     isLiveApiEnabled() &&
@@ -1379,7 +1640,7 @@ sharedReconciliationBox.addEventListener("click", async (e) => {
     renderSharedDisplay();
     try {
       const context = buildClinicalContextSnapshot();
-      const sysPrompt = `You are CoConsult's patient communication assistant. Write a clear, empathetic 3-5 sentence explanation in ${getLanguageName(appState.lang)} explaining why the doctor's final diagnosis is more accurate and trustworthy than the AI's preliminary draft (NAFLD), explicitly referencing the doctor's clinical factors and why isolated lab numbers miss individual context.\n\nCLINICAL CONTEXT:\n${context}`;
+      const sysPrompt = `You are CoConsult's patient communication assistant. Write a clear, empathetic 3-5 sentence explanation in ${getLanguageName(appState.lang)} explaining why the doctor's final diagnosis is more accurate and trustworthy than the AI's preliminary draft, explicitly referencing the doctor's clinical factors and why isolated lab numbers or scans miss individual context.\n\nCLINICAL CONTEXT:\n${context}`;
       appState.reconcileLiveText = await callLiveLLM(
         sysPrompt,
         "Why does the doctor's diagnosis differ from the AI draft?"
