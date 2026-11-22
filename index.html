@@ -42,13 +42,13 @@
   <main class="container">
     <!-- ================= VIEW 1: PATIENT ================= -->
     <section id="view-patient" class="view-section active">
-      <!-- Stage 1: Pre-Visit -->
+      <!-- Pre-Visit Symptom Preparation -->
       <div class="card">
         <div class="card-header">
-          <h2 data-i18n="stage1Title"></h2>
+          <h2 data-i18n="previsitTitle"></h2>
           <span class="badge implemented" data-i18n="badgeImplemented"></span>
         </div>
-        <p class="helper-text" data-i18n-html="stage1Desc"></p>
+        <p class="helper-text" data-i18n-html="previsitDesc"></p>
 
         <label for="symptom-input" class="input-label" data-i18n="symptomLabel"></label>
         <textarea id="symptom-input" rows="4"></textarea>
@@ -84,15 +84,15 @@
         </div>
       </div>
 
-      <!-- Stage 3: Lab Report & Scan Upload + Plain-Language AI Explainer + Free-Text Q&A -->
+      <!-- Lab Report & Scan Upload + Private Free-Text Q&A -->
       <div class="card">
         <div class="card-header">
-          <h2 data-i18n="stage3Title"></h2>
+          <h2 data-i18n="labUploadTitle"></h2>
           <span class="badge implemented" data-i18n="badgeImplemented"></span>
         </div>
-        <p class="helper-text" data-i18n-html="stage3Desc"></p>
+        <p class="helper-text" data-i18n-html="labUploadDesc"></p>
 
-        <!-- Shows Doctor's Ordered Tests if confirmed -->
+        <!-- Clinician Ordered Tests Banner -->
         <div id="patient-orders-banner" class="orders-banner hidden">
           <strong data-i18n="ordersReceivedTitle"></strong>
           <ul id="patient-orders-list"></ul>
@@ -114,7 +114,6 @@
           </div>
         </div>
 
-        <!-- Simulated AI Lab Loading -->
         <div id="lab-ai-loading" class="loading-box hidden">
           <div class="spinner"></div>
           <span data-i18n="labLoadingText"></span>
@@ -128,9 +127,12 @@
           </div>
           <div id="lab-ai-body"></div>
 
-          <!-- Free-Text Follow-Up Q&A (No restrictive chips) -->
+          <!-- Private Free-Text Follow-Up Q&A -->
           <div class="qa-section">
-            <h3 data-i18n="qaTitle"></h3>
+            <div class="qa-header-row">
+              <h3 data-i18n="qaTitle"></h3>
+              <span class="privacy-pill" data-i18n="qaPrivacyPill"></span>
+            </div>
             <p class="helper-text" data-i18n="qaDesc"></p>
             <div class="qa-input-row">
               <input type="text" id="qa-input" />
@@ -139,14 +141,21 @@
             <div id="qa-history" class="qa-history"></div>
           </div>
 
-          <!-- Saved Questions for Doctor (Safety Fallback List) -->
+          <!-- Voluntarily Selected Questions for Doctor -->
           <div id="doctor-questions-box" class="saved-questions-box hidden">
             <h4 data-i18n="savedQuestionsTitle"></h4>
-            <ul id="doctor-questions-list"></ul>
+            <ul id="doctor-questions-list" class="removable-q-list"></ul>
           </div>
 
-          <!-- Sync Lab + Questions to Doctor -->
+          <!-- Tiered Privacy Disclosure Control -->
           <div class="disclosure-box">
+            <label class="checkbox-row">
+              <input type="checkbox" id="share-questions-checkbox" />
+              <span>
+                <strong data-i18n="shareQuestionsTitle"></strong>
+                <small data-i18n="shareQuestionsSub"></small>
+              </span>
+            </label>
             <button id="btn-send-lab-doctor" class="btn success" type="button" data-i18n="btnSendLabDoctor"></button>
             <div id="lab-submit-feedback" class="feedback-banner hidden"></div>
           </div>
@@ -156,7 +165,7 @@
 
     <!-- ================= VIEW 2: DOCTOR ================= -->
     <section id="view-doctor" class="view-section">
-      <!-- Stage 1 & 2: Incoming Pre-Visit Brief + Clinical Orders -->
+      <!-- Incoming Pre-Visit Brief & Realistic Test Ordering -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docPanelTitle"></h2>
@@ -184,31 +193,39 @@
 
           <div id="doc-ai-hidden-notice" class="notice-warning hidden" data-i18n-html="docAIHiddenNotice"></div>
 
-          <!-- Stage 2: Doctor Orders Tests -->
+          <!-- Realistic EHR Searchable Test Orders -->
           <div class="order-panel">
-            <h3 data-i18n="stage2Title"></h3>
-            <p class="helper-text" data-i18n="stage2Desc"></p>
-            <div class="order-list">
-              <label class="checkbox-row">
-                <input type="checkbox" id="order-lft" checked />
-                <span data-i18n="orderLFT"></span>
-              </label>
-              <label class="checkbox-row">
-                <input type="checkbox" id="order-ultrasound" checked />
-                <span data-i18n="orderUltrasound"></span>
-              </label>
-              <label class="checkbox-row">
-                <input type="checkbox" id="order-cbc" />
-                <span data-i18n="orderCBC"></span>
-              </label>
+            <h3 data-i18n="ordersPanelTitle"></h3>
+            <p class="helper-text" data-i18n="ordersPanelDesc"></p>
+
+            <!-- Quick Demo Chips -->
+            <div class="quick-chips-row">
+              <span class="quick-label" data-i18n="quickAddLabel"></span>
+              <div id="quick-order-chips" class="quick-chips"></div>
             </div>
+
+            <!-- Search & Custom Input -->
+            <div class="search-order-wrap">
+              <div class="qa-input-row">
+                <input type="text" id="order-search-input" autocomplete="off" />
+                <button id="btn-add-custom-order" class="btn secondary" type="button" data-i18n="btnAddOrder"></button>
+              </div>
+              <div id="order-suggestions" class="suggestions-dropdown hidden"></div>
+            </div>
+
+            <!-- Selected Order Tags -->
+            <div class="selected-orders-wrap">
+              <span class="input-label" data-i18n="selectedOrdersLabel"></span>
+              <div id="selected-orders-container" class="tags-container"></div>
+            </div>
+
             <button id="btn-confirm-orders" class="btn primary" type="button" data-i18n="btnConfirmOrders"></button>
             <div id="doc-order-feedback" class="feedback-banner hidden"></div>
           </div>
         </div>
       </div>
 
-      <!-- Stage 3 Incoming Lab Report & Patient Questions -->
+      <!-- Incoming Lab Report & Patient Questions -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docLabHeading"></h2>
@@ -222,27 +239,95 @@
         <div id="doc-lab-content" class="hidden">
           <div id="doc-lab-summary-body"></div>
 
-          <div id="doc-questions-wrap" class="info-block">
+          <div class="info-block">
             <h3 data-i18n="docQuestionsHeading"></h3>
-            <p id="doc-no-questions" class="helper-text" data-i18n="docNoQuestions"></p>
-            <ul id="doc-questions-list" class="doc-q-list hidden"></ul>
+            <div id="doc-questions-private-notice" class="notice-info hidden" data-i18n-html="docQuestionsPrivate"></div>
+            <div id="doc-questions-shared-wrap" class="hidden">
+              <p id="doc-no-questions" class="helper-text" data-i18n="docNoQuestions"></p>
+              <ul id="doc-questions-list" class="doc-q-list hidden"></ul>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Placeholder for Commit 3 (v3) -->
-      <div class="card muted-card">
+      <!-- Final Clinical Diagnosis, Override & Shared Screen Gate -->
+      <div class="card">
         <div class="card-header">
-          <h3 data-i18n="v3DoctorTitle"></h3>
-          <span class="badge planned" data-i18n="badgeNextV3"></span>
+          <h2 data-i18n="docFinalTitle"></h2>
+          <span class="badge doctor-badge" data-i18n="badgeDoctorControl"></span>
         </div>
-        <p class="helper-text" data-i18n="v3DoctorDesc"></p>
+
+        <div id="doc-final-empty" class="empty-state">
+          <p class="helper-text" data-i18n="docFinalEmpty"></p>
+        </div>
+
+        <div id="doc-final-controls" class="hidden">
+          <p class="helper-text" data-i18n="docFinalDesc"></p>
+
+          <!-- Agree vs Override Choice -->
+          <div class="decision-grid">
+            <label class="decision-option">
+              <input type="radio" name="doc-decision" id="decision-agree" value="agree" />
+              <div class="decision-card">
+                <strong data-i18n="decisionAgreeTitle"></strong>
+                <small data-i18n="decisionAgreeSub"></small>
+              </div>
+            </label>
+            <label class="decision-option">
+              <input type="radio" name="doc-decision" id="decision-override" value="override" checked />
+              <div class="decision-card">
+                <strong data-i18n="decisionOverrideTitle"></strong>
+                <small data-i18n="decisionOverrideSub"></small>
+              </div>
+            </label>
+          </div>
+
+          <!-- Override Clinical Reasoning Box -->
+          <div id="override-panel" class="override-panel">
+            <label for="doc-custom-diagnosis" class="input-label" data-i18n="overrideDiagLabel"></label>
+            <input type="text" id="doc-custom-diagnosis" />
+
+            <span class="input-label" data-i18n="overrideReasonsLabel"></span>
+            <div class="reason-list">
+              <label class="checkbox-row">
+                <input type="checkbox" id="reason-meds" checked />
+                <span data-i18n="reasonMeds"></span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="reason-exam" checked />
+                <span data-i18n="reasonExam"></span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="reason-lifestyle" checked />
+                <span data-i18n="reasonLifestyle"></span>
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="reason-history" />
+                <span data-i18n="reasonHistory"></span>
+              </label>
+            </div>
+
+            <label for="doc-custom-reason" class="input-label" data-i18n="customReasonLabel"></label>
+            <textarea id="doc-custom-reason" rows="2"></textarea>
+          </div>
+
+          <!-- Clinician Care Plan -->
+          <label for="doc-care-plan" class="input-label" data-i18n="carePlanLabel"></label>
+          <textarea id="doc-care-plan" rows="3"></textarea>
+
+          <div class="action-row">
+            <button id="btn-approve-shared" class="btn success" type="button" data-i18n="btnApproveShared"></button>
+            <button id="btn-revoke-shared" class="btn danger-outline hidden" type="button" data-i18n="btnRevokeShared"></button>
+          </div>
+          <div id="doc-approve-feedback" class="feedback-banner hidden"></div>
+        </div>
       </div>
     </section>
 
     <!-- ================= VIEW 3: SHARED DISPLAY ================= -->
     <section id="view-shared" class="view-section">
-      <div class="card shared-lock-card">
+      <!-- Locked State -->
+      <div id="shared-locked-state" class="card shared-lock-card">
         <div class="card-header">
           <h2 data-i18n="sharedTitle"></h2>
           <span class="badge doctor-badge" data-i18n="badgeDoctorGated"></span>
@@ -250,6 +335,54 @@
         <div class="lock-box">
           <p class="lock-title" data-i18n="sharedLockTitle"></p>
           <p class="helper-text" data-i18n-html="sharedLockDesc"></p>
+        </div>
+      </div>
+
+      <!-- Unlocked State (Doctor Approved) -->
+      <div id="shared-unlocked-state" class="hidden">
+        <!-- Top Accessibility & Status Bar -->
+        <div class="shared-toolbar">
+          <div>
+            <h2 data-i18n="sharedTitle"></h2>
+            <span class="badge doctor-badge" data-i18n="badgeApprovedLive"></span>
+          </div>
+          <button id="btn-toggle-accessible" class="btn accessible-toggle" type="button"></button>
+        </div>
+
+        <div id="shared-content-wrapper">
+          <!-- 1. Doctor Final Diagnosis (Highest Authority) -->
+          <div class="card shared-doctor-card">
+            <div class="card-header">
+              <h3 data-i18n="sharedDocDiagHeading"></h3>
+              <span class="badge doctor-verified-badge" data-i18n="badgeDoctorVerified"></span>
+            </div>
+            <p id="shared-final-diagnosis" class="final-diagnosis-text"></p>
+            <div class="care-plan-box">
+              <strong data-i18n="sharedCarePlanHeading"></strong>
+              <p id="shared-care-plan"></p>
+            </div>
+          </div>
+
+          <!-- 2. Alignment / Discordance Reconciliation -->
+          <div id="shared-reconciliation-box" class="card"></div>
+
+          <!-- 3. Verified Plain-Language Lab Summary -->
+          <div class="card">
+            <div class="card-header">
+              <h3 data-i18n="sharedLabHeading"></h3>
+              <span class="badge ai-badge" data-i18n="badgeAIVerifiedDisplay"></span>
+            </div>
+            <div id="shared-lab-summary"></div>
+          </div>
+
+          <!-- 4. Patient's Shared Discussion Questions (Only if opted in) -->
+          <div id="shared-questions-card" class="card hidden">
+            <div class="card-header">
+              <h3 data-i18n="sharedQuestionsHeading"></h3>
+              <span class="badge implemented" data-i18n="badgePatientShared"></span>
+            </div>
+            <ul id="shared-questions-list" class="doc-q-list"></ul>
+          </div>
         </div>
       </div>
     </section>
