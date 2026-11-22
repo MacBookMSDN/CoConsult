@@ -19,11 +19,14 @@
         <button class="lang-btn" data-lang="zh" type="button">中文</button>
         <button class="lang-btn" data-lang="it" type="button">IT</button>
       </div>
-      <span class="status-pill simulated" data-i18n="statusSimulated"></span>
+      <!-- Clickable Option B AI Engine & Context Inspector Button -->
+      <button id="btn-api-settings" class="status-pill simulated clickable-pill" type="button">
+        <span id="api-status-text"></span> ⚙
+      </button>
     </div>
   </header>
 
-  <!-- Role Switcher Navigation -->
+  <!-- Role Switcher Navigation (Prototype Simulation of 3 Physical Terminals) -->
   <nav class="role-nav" aria-label="System Role Switcher">
     <button class="nav-btn active" data-view="patient" type="button">
       <span data-i18n="navPatientTitle"></span>
@@ -65,9 +68,10 @@
 
         <div id="ai-previsit-result" class="ai-card hidden">
           <div class="ai-card-header">
-            <span class="badge ai-badge" data-i18n="badgeAIPrevisit"></span>
+            <span id="ai-previsit-badge" class="badge ai-badge"></span>
             <span class="disclaimer-tag" data-i18n="aiDisclaimer"></span>
           </div>
+          <div id="ai-previsit-fallback-note" class="notice-warning hidden"></div>
           <div id="ai-previsit-body" class="ai-card-body"></div>
 
           <div class="disclosure-box">
@@ -92,8 +96,12 @@
         </div>
         <p class="helper-text" data-i18n-html="labUploadDesc"></p>
 
-        <!-- Clinician Ordered Tests Banner -->
+        <!-- Doctor's Preliminary Feedback & Ordered Tests -->
         <div id="patient-orders-banner" class="orders-banner hidden">
+          <div id="patient-prelim-feedback-wrap" class="prelim-feedback-box hidden">
+            <strong data-i18n="patientPrelimHeading"></strong>
+            <p id="patient-prelim-feedback-text"></p>
+          </div>
           <strong data-i18n="ordersReceivedTitle"></strong>
           <ul id="patient-orders-list"></ul>
         </div>
@@ -138,6 +146,10 @@
               <input type="text" id="qa-input" />
               <button id="btn-qa-send" class="btn primary" type="button" data-i18n="btnQASend"></button>
             </div>
+            <div id="qa-loading" class="loading-box hidden">
+              <div class="spinner"></div>
+              <span data-i18n="qaLoadingText"></span>
+            </div>
             <div id="qa-history" class="qa-history"></div>
           </div>
 
@@ -165,7 +177,7 @@
 
     <!-- ================= VIEW 2: DOCTOR ================= -->
     <section id="view-doctor" class="view-section">
-      <!-- Incoming Pre-Visit Brief & Realistic Test Ordering -->
+      <!-- Incoming Pre-Visit Brief, Preliminary Feedback & Searchable Orders -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docPanelTitle"></h2>
@@ -193,10 +205,14 @@
 
           <div id="doc-ai-hidden-notice" class="notice-warning hidden" data-i18n-html="docAIHiddenNotice"></div>
 
-          <!-- Realistic EHR Searchable Test Orders -->
+          <!-- Clinician Preliminary Impression & Searchable Test Orders -->
           <div class="order-panel">
             <h3 data-i18n="ordersPanelTitle"></h3>
             <p class="helper-text" data-i18n="ordersPanelDesc"></p>
+
+            <!-- NEW: Clinician Preliminary Impression Feedback -->
+            <label for="doc-prelim-note" class="input-label" data-i18n="docPrelimLabel"></label>
+            <textarea id="doc-prelim-note" rows="3"></textarea>
 
             <!-- Quick Demo Chips -->
             <div class="quick-chips-row">
@@ -225,7 +241,7 @@
         </div>
       </div>
 
-      <!-- Incoming Lab Report & Patient Questions -->
+      <!-- Incoming Lab Report & Auditable Patient Q&A -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docLabHeading"></h2>
@@ -239,12 +255,14 @@
         <div id="doc-lab-content" class="hidden">
           <div id="doc-lab-summary-body"></div>
 
+          <!-- NEW: Auditable Shared Q&A Cards -->
           <div class="info-block">
             <h3 data-i18n="docQuestionsHeading"></h3>
+            <p class="helper-text" data-i18n="docQuestionsAuditHint"></p>
             <div id="doc-questions-private-notice" class="notice-info hidden" data-i18n-html="docQuestionsPrivate"></div>
             <div id="doc-questions-shared-wrap" class="hidden">
               <p id="doc-no-questions" class="helper-text" data-i18n="docNoQuestions"></p>
-              <ul id="doc-questions-list" class="doc-q-list hidden"></ul>
+              <div id="doc-questions-audit-list" class="audit-list hidden"></div>
             </div>
           </div>
         </div>
@@ -264,7 +282,6 @@
         <div id="doc-final-controls" class="hidden">
           <p class="helper-text" data-i18n="docFinalDesc"></p>
 
-          <!-- Agree vs Override Choice -->
           <div class="decision-grid">
             <label class="decision-option">
               <input type="radio" name="doc-decision" id="decision-agree" value="agree" />
@@ -282,7 +299,6 @@
             </label>
           </div>
 
-          <!-- Override Clinical Reasoning Box -->
           <div id="override-panel" class="override-panel">
             <label for="doc-custom-diagnosis" class="input-label" data-i18n="overrideDiagLabel"></label>
             <input type="text" id="doc-custom-diagnosis" />
@@ -311,7 +327,6 @@
             <textarea id="doc-custom-reason" rows="2"></textarea>
           </div>
 
-          <!-- Clinician Care Plan -->
           <label for="doc-care-plan" class="input-label" data-i18n="carePlanLabel"></label>
           <textarea id="doc-care-plan" rows="3"></textarea>
 
@@ -340,7 +355,6 @@
 
       <!-- Unlocked State (Doctor Approved) -->
       <div id="shared-unlocked-state" class="hidden">
-        <!-- Top Accessibility & Status Bar -->
         <div class="shared-toolbar">
           <div>
             <h2 data-i18n="sharedTitle"></h2>
@@ -350,7 +364,7 @@
         </div>
 
         <div id="shared-content-wrapper">
-          <!-- 1. Doctor Final Diagnosis (Highest Authority) -->
+          <!-- 1. Doctor Final Diagnosis -->
           <div class="card shared-doctor-card">
             <div class="card-header">
               <h3 data-i18n="sharedDocDiagHeading"></h3>
@@ -375,18 +389,78 @@
             <div id="shared-lab-summary"></div>
           </div>
 
-          <!-- 4. Patient's Shared Discussion Questions (Only if opted in) -->
+          <!-- 4. Clinician-Audited Patient Discussion Questions -->
           <div id="shared-questions-card" class="card hidden">
             <div class="card-header">
               <h3 data-i18n="sharedQuestionsHeading"></h3>
               <span class="badge implemented" data-i18n="badgePatientShared"></span>
             </div>
-            <ul id="shared-questions-list" class="doc-q-list"></ul>
+            <div id="shared-questions-list" class="shared-qa-list"></div>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- ================= OPTION B: AI ENGINE & CONTEXT MODAL ================= -->
+  <div id="api-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="api-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="api-modal-title" data-i18n="apiModalTitle"></h2>
+        <button id="btn-close-api-modal" class="modal-close-btn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <p class="helper-text" data-i18n-html="apiModalDesc"></p>
+
+      <!-- Mode Switch -->
+      <div class="decision-grid">
+        <label class="decision-option">
+          <input type="radio" name="ai-mode" id="mode-simulated" value="simulated" checked />
+          <div class="decision-card">
+            <strong data-i18n="modeSimTitle"></strong>
+            <small data-i18n="modeSimSub"></small>
+          </div>
+        </label>
+        <label class="decision-option">
+          <input type="radio" name="ai-mode" id="mode-live" value="live" />
+          <div class="decision-card">
+            <strong data-i18n="modeLiveTitle"></strong>
+            <small data-i18n="modeLiveSub"></small>
+          </div>
+        </label>
+      </div>
+
+      <!-- Live API BYOK Configuration -->
+      <div id="live-api-fields" class="override-panel hidden">
+        <div class="notice-warning" style="margin-top:0; margin-bottom:12px;" data-i18n-html="apiKeySecurityNote"></div>
+
+        <label for="api-endpoint-input" class="input-label" data-i18n="apiEndpointLabel"></label>
+        <input type="text" id="api-endpoint-input" value="https://api.openai.com/v1/chat/completions" />
+
+        <label for="api-model-input" class="input-label" data-i18n="apiModelLabel"></label>
+        <input type="text" id="api-model-input" value="gpt-4o-mini" />
+
+        <label for="api-key-input" class="input-label" data-i18n="apiKeyLabel"></label>
+        <input type="password" id="api-key-input" autocomplete="off" />
+
+        <div class="action-row">
+          <button id="btn-clear-api-key" class="btn secondary" type="button" data-i18n="btnClearKey"></button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="btn-save-api-config" class="btn primary" type="button" data-i18n="btnSaveApiConfig"></button>
+      </div>
+      <div id="api-config-feedback" class="feedback-banner hidden"></div>
+
+      <!-- Live Cross-Stage Context Memory Inspector -->
+      <div class="context-inspector">
+        <h3 data-i18n="contextTitle"></h3>
+        <p class="helper-text" data-i18n="contextDesc"></p>
+        <pre id="context-memory-preview" class="context-pre"></pre>
+      </div>
+    </div>
+  </div>
 
   <script src="i18n.js"></script>
   <script src="app.js"></script>

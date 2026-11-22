@@ -1,7 +1,7 @@
 // =========================================================
-// CoConsult v3 (Final Prototype) — Trilingual Pack (EN/ZH/IT)
-// Includes searchable clinical test catalog, tiered privacy
-// copy, clinician override reconciliation, and accessibility
+// CoConsult v3.1 (Final Prototype) — Trilingual Pack (EN/ZH/IT)
+// Includes clinician preliminary feedback, Q&A audit/correction,
+// and Option B (BYOK Live API + Cross-Stage Context Inspector)
 // =========================================================
 
 const TEST_CATALOG = [
@@ -156,11 +156,12 @@ const QUICK_ORDER_IDS = ["lft", "abd_us", "hep"];
 const TRANSLATIONS = {
   en: {
     subtitle: "Transparent Doctor–Patient–AI Consultation System",
-    statusSimulated: "AI Engine: Simulated (API Slot Reserved)",
+    statusSimulated: "AI Engine: Simulated (Click for API)",
+    statusLive: "AI Engine: Live API Connected",
     navPatientTitle: "1. Patient View",
     navPatientSub: "Pre-Visit & Lab Reports",
     navDoctorTitle: "2. Doctor Dashboard",
-    navDoctorSub: "Orders, Review & Control",
+    navDoctorSub: "Orders, Audit & Control",
     navSharedTitle: "3. Shared Display",
     navSharedSub: "In-Room Screen",
 
@@ -174,8 +175,9 @@ const TRANSLATIONS = {
       "Example: I have been feeling tired for two weeks, with mild discomfort in my upper right abdomen and poor appetite...",
     btnLoadSample: "Load Sample Case (Liver / Fatigue)",
     btnAskAI: "Get AI Pre-Visit Appraisal",
-    aiLoadingText: "Simulated AI engine is structuring your symptom notes...",
+    aiLoadingText: "AI engine is structuring your symptom notes...",
     badgeAIPrevisit: "AI-Assisted Pre-Visit Summary (Simulated)",
+    badgeAIPrevisitLive: "AI-Assisted Pre-Visit Summary (Live API)",
     aiDisclaimer: "For consultation prep only — not a medical diagnosis",
     shareCheckTitle: "Openly share my AI pre-visit summary with the doctor",
     shareCheckSub: "(Encourages transparent discussion instead of hiding AI use)",
@@ -190,6 +192,7 @@ const TRANSLATIONS = {
     labUploadTitle: "Upload Lab Results / Scans & Plain-Language Explainer",
     labUploadDesc:
       "Upload your blood test or scan image (or load the sample liver report). CoConsult highlights abnormal markers like <strong>ALT / AST</strong> in plain language so you understand your results before meeting your doctor.",
+    patientPrelimHeading: "Doctor's Preliminary Impression & Rationale:",
     ordersReceivedTitle: "Clinician-Ordered Tests Ready for Upload:",
     uploadLabel: "Upload Blood Test Report or Scan Image (JPG / PNG / PDF):",
     btnLoadSampleLab: "Load Sample Liver Lab & Ultrasound",
@@ -204,54 +207,71 @@ const TRANSLATIONS = {
     qaTitle: "Ask Any Follow-Up Question (Free Text)",
     qaPrivacyPill: "🔒 Private by Default",
     qaDesc:
-      "Type any question freely in your own words. Your AI chat stays completely private—you decide whether to pick specific questions to share with your doctor.",
+      "Type any question freely in your own words. Your AI chat stays completely private—you decide whether to pick specific questions (along with the AI's reply) to share with your doctor for review.",
     qaPlaceholder: "Ask anything (e.g., Could painkillers raise ALT? Is this cancer?)...",
     btnQASend: "Ask AI",
+    qaLoadingText: "Sending full clinical context to Live API...",
+    badgeLiveAnswer: "Live API",
+    badgeSimAnswer: "Simulated",
     alertEmptyQA: "Please type a question first.",
-    btnAddToDoctorList: "+ Add to Doctor Discussion List",
-    btnSuggestedAdd: "+ Suggested: Add to Doctor Discussion List",
+    btnAddToDoctorList: "+ Add to Doctor Review List",
+    btnSuggestedAdd: "+ Suggested: Add to Doctor Review List",
     btnAddedToDoctorList: "✓ Added (Click to Remove)",
     savedQuestionsTitle: "Questions You Selected for Your Doctor (Optional to Share):",
     btnRemoveItem: "Remove",
-    shareQuestionsTitle: "Also share my selected 'Questions for Doctor' list with the doctor",
-    shareQuestionsSub: "(Optional — unchecked by default to protect privacy; your full AI chat always stays private)",
+    shareQuestionsTitle: "Also share my selected questions (and what the AI replied) with the doctor",
+    shareQuestionsSub: "(Optional — unchecked by default to protect privacy; lets your doctor verify or correct any AI reply)",
     btnSendLabDoctor: "Send Lab Report to Doctor Dashboard →",
     labSentFeedbackShared:
-      "✓ Sent! Your lab interpretation and selected questions are now visible in the Doctor Dashboard.",
+      "✓ Sent! Your lab interpretation and selected Q&A items are now ready for doctor audit.",
     labSentFeedbackPrivate:
       "✓ Sent! Your lab interpretation was sent to the Doctor Dashboard (all personal questions kept private).",
 
-    // Doctor Panel: Pre-Visit & Searchable Orders
-    docPanelTitle: "Patient Pre-Visit Brief & Diagnostic Test Ordering",
+    // Doctor Panel: Pre-Visit, Preliminary Feedback & Searchable Orders
+    docPanelTitle: "Patient Pre-Visit Brief, Preliminary Feedback & Test Ordering",
     badgeDoctorPanel: "Clinician Control Panel",
     docEmptyTitle: "No patient pre-visit brief received yet.",
     docEmptyDesc:
       "Go to <strong>1. Patient View</strong>, run a pre-visit appraisal, and click 'Send Summary to Doctor Dashboard' to begin.",
     docSymptomsHeading: "Patient-Reported Symptoms",
     docAISharedHeading: "Patient's Pre-Visit AI Query (Shared Openly)",
-    badgeAISimulated: "AI-Assisted (Simulated)",
+    badgeAISimulated: "AI-Assisted",
     docAIHiddenNotice:
       "<strong>Notice:</strong> The patient chose <em>not</em> to share their pre-visit AI summary. Only direct symptom notes are shown above.",
 
-    ordersPanelTitle: "Order Diagnostic Tests (Search Catalog or Type Custom)",
+    ordersPanelTitle: "Clinician Preliminary Impression & Diagnostic Test Orders",
     ordersPanelDesc:
-      "Search by modality or body area (e.g., CT, MRI, ultrasound, liver, blood) or type any custom test name to add it to the order list.",
+      "Provide an initial clinical explanation for the patient, then search the hospital test catalog (CT, MRI, ultrasound, blood) or type any custom test.",
+    docPrelimLabel: "Doctor's Preliminary Impression & Ordering Rationale (Sent to Patient):",
+    defaultPrelimNote:
+      "Based on your two-week fatigue, mild right upper abdominal discomfort, and recent painkiller use, we cannot draw a conclusion from symptoms alone. I am ordering liver function blood tests and an abdominal ultrasound first to rule out temporary liver cell stress or fatty changes.",
     quickAddLabel: "Quick add:",
     orderSearchPlaceholder: "Search tests (e.g., CT, MRI, ALT, Ultrasound, ECG) or type a custom order...",
     btnAddOrder: "+ Add",
     selectedOrdersLabel: "Selected Tests to Order:",
     noOrdersYet: "No tests selected yet. Search above or click a quick-add item.",
-    btnConfirmOrders: "Confirm & Send Test Orders to Patient",
+    btnConfirmOrders: "Send Preliminary Feedback & Test Orders to Patient",
     alertNoOrder: "Please add at least one clinical test before confirming.",
-    docOrderFeedback: "✓ Test orders confirmed and synced to the Patient View.",
+    docOrderFeedback: "✓ Preliminary feedback and test orders synced to the Patient View.",
 
-    // Doctor Panel: Lab Results
+    // Doctor Panel: Lab Results & Q&A Audit
     docLabHeading: "Uploaded Lab Results & AI Preliminary Impression",
     docLabEmpty: "No lab report received yet. Complete the lab upload in Patient View to review markers and the AI draft here.",
-    docQuestionsHeading: "Patient Discussion Questions",
+    docQuestionsHeading: "Clinician Audit of Shared Patient–AI Q&A",
+    docQuestionsAuditHint:
+      "Review both the patient's question and what the AI actually answered. Mark accurate replies or flag and correct any AI misinformation before projecting to the Shared Display.",
     docQuestionsPrivate:
       "<strong>Privacy Respected:</strong> The patient chose to keep their follow-up questions private for now.",
     docNoQuestions: "The patient enabled sharing but did not select any specific questions.",
+    auditAIReplyLabel: "Original AI Reply Shown to Patient:",
+    btnAuditAccurate: "✓ AI Reply Accurate",
+    btnAuditCorrect: "⚠ Flag & Correct AI",
+    auditNotePlaceholder: "Enter clinician clarification or correction (shown prominently on Shared Display)...",
+    sharedBadgeAccurate: "Verified by Doctor",
+    sharedBadgeCorrected: "Corrected by Doctor",
+    sharedBadgePending: "For In-Room Discussion",
+    sharedDoctorReplyTitle: "Doctor's Clinical Clarification / Correction:",
+    sharedOriginalAISuperseded: "Original AI Reply (Superseded by Doctor):",
 
     // Doctor Panel: Final Diagnosis & Reconciliation
     docFinalTitle: "Final Clinical Diagnosis & Shared Screen Approval",
@@ -296,8 +316,8 @@ const TRANSLATIONS = {
     sharedCarePlanHeading: "Agreed Next Steps & Care Plan:",
     sharedLabHeading: "Plain-Language Summary of Your Test Results",
     badgeAIVerifiedDisplay: "AI-Assisted Explanation (Simulated)",
-    sharedQuestionsHeading: "Your Selected Questions for Today's Discussion",
-    badgePatientShared: "Shared by Patient",
+    sharedQuestionsHeading: "Clinician-Reviewed Discussion Questions",
+    badgePatientShared: "Shared & Audited",
 
     // Shared Display Reconciliation
     alignedTitle: "✓ Dual Verification: Doctor & AI Aligned",
@@ -311,11 +331,38 @@ const TRANSLATIONS = {
     compareDocLabel: "Doctor's Final Diagnosis (Authoritative)",
     btnWhyDifferent: "Why does the doctor's diagnosis differ from the AI?",
     btnHideWhyDifferent: "Hide explanation",
+    reconcileLoading: "Generating tailored explanation with Live API using full clinical context...",
     reconcileExpHeader: "AI Explanation Supporting Your Doctor's Clinical Decision (Simulated)",
+    reconcileExpHeaderLive: "AI Explanation Supporting Your Doctor's Clinical Decision (Live API)",
     reconcileExpIntro:
       "The AI draft flagged <strong>Fatty Liver</strong> simply because raised ALT/AST with a slightly bright ultrasound is the most statistically common pattern in general databases. However, <strong>your doctor's diagnosis is more accurate for you personally</strong> because they evaluated critical real-world factors that an algorithm cannot see:",
     reconcileExpFooter:
       "AI tools cannot replace physical examination or individual clinical context—following your doctor's confirmed plan is the safest path forward.",
+
+    // Option B Modal
+    apiModalTitle: "AI Engine Settings & Cross-Stage Context Memory",
+    apiModalDesc:
+      "By default, CoConsult runs in <strong>Simulated Mode</strong> so it works offline with zero cost or leaked secrets. Evaluators can optionally enter their own OpenAI-compatible API key (BYOK) below to test live LLM responses.",
+    modeSimTitle: "Simulated Mode (Default / Offline)",
+    modeSimSub: "Uses structured local clinical templates. Reliable, zero setup, no API key needed.",
+    modeLiveTitle: "Live API Mode (BYOK — Optional)",
+    modeLiveSub: "Sends real cross-stage context to an OpenAI-compatible endpoint (OpenAI / Gemini / DeepSeek).",
+    apiKeySecurityNote:
+      "<strong>Security Notice:</strong> Your API key is held <em>strictly in browser memory</em> for this tab only. It is cleared automatically on page refresh and is never stored in files or GitHub.",
+    apiEndpointLabel: "API Endpoint URL (OpenAI-Compatible Chat Completions):",
+    apiModelLabel: "Model Name (e.g., gpt-4o-mini, gemini-2.5-flash, deepseek-chat):",
+    apiKeyLabel: "Your API Key (Memory Only):",
+    apiKeyPlaceholder: "sk-...",
+    btnClearKey: "Clear Key",
+    btnSaveApiConfig: "Save AI Engine Settings",
+    apiSavedSim: "✓ Switched to Simulated Mode (Offline).",
+    apiSavedLive: "✓ Live API Mode enabled! Subsequent AI calls will pass full clinical context below.",
+    apiKeyMissingAlert: "Please enter an API Key to enable Live API Mode, or select Simulated Mode.",
+    apiFallbackNotice:
+      "Live API request could not complete (check key, model, or browser CORS policy). Safely fell back to Simulated Mode output.",
+    contextTitle: "Live Cross-Stage Context Memory (appState)",
+    contextDesc:
+      "Because LLM APIs are stateless, CoConsult stores clinical state across stages here and packages it with every Live API request so the AI remembers earlier symptoms, lab reports, and doctor decisions:",
 
     // Sample Clinical Content
     sampleSymptomText:
@@ -409,17 +456,18 @@ const TRANSLATIONS = {
       markers:
         "<strong>ALT vs. AST in One Line:</strong> <span class='key-term'>ALT</span> is a liver-specific alarm bell, while <span class='key-term'>AST</span> reflects broader cell stress. Both being mildly high signals temporary irritation, not permanent damage.",
       fallback:
-        "<strong>Medical Safety Boundary:</strong> This question requires personalised clinical judgement beyond the simulated knowledge base. If you feel comfortable sharing it, you can click the button below to add it to your optional <strong>Doctor Discussion List</strong>.",
+        "<strong>Medical Safety Boundary:</strong> This question requires personalised clinical judgement beyond the simulated knowledge base. If you feel comfortable sharing it, click the button below to add it to your optional <strong>Doctor Review List</strong>.",
     },
   },
 
   zh: {
     subtitle: "医-患-AI 透明协作问诊系统原型",
-    statusSimulated: "AI 引擎：模拟模式（已预留 API 接口）",
+    statusSimulated: "AI 引擎：模拟模式（点击配置 API）",
+    statusLive: "AI 引擎：已连接真实 API",
     navPatientTitle: "1. 患者视角",
     navPatientSub: "诊前自查与报告解读",
     navDoctorTitle: "2. 医生工作台",
-    navDoctorSub: "开单、审核与终诊控制",
+    navDoctorSub: "开单、审校与终诊控制",
     navSharedTitle: "3. 诊室共享屏",
     navSharedSub: "医患同看大屏",
 
@@ -433,8 +481,9 @@ const TRANSLATIONS = {
       "例如：最近两周总是觉得很累、没力气，右上腹隐隐作痛，没什么胃口……",
     btnLoadSample: "一键填入示例病例（肝区不适 / 乏力）",
     btnAskAI: "获取 AI 诊前结构化评估",
-    aiLoadingText: "模拟 AI 引擎正在分析并整理您的症状要点...",
+    aiLoadingText: "AI 引擎正在分析并整理您的症状要点...",
     badgeAIPrevisit: "AI 辅助诊前摘要（模拟输出）",
+    badgeAIPrevisitLive: "AI 辅助诊前摘要（真实 API 实时生成）",
     aiDisclaimer: "仅用于就诊准备 — 非医疗诊断结论",
     shareCheckTitle: "公开将我的 AI 诊前咨询记录同步给医生",
     shareCheckSub: "（打破隐瞒 AI 使用的尴尬，便于医患公开讨论）",
@@ -449,6 +498,7 @@ const TRANSLATIONS = {
     labUploadTitle: "检查报告上传与 AI 通俗解读",
     labUploadDesc:
       "上传您的抽血报告或检查片子（也可一键加载肝功能样例）。CoConsult 会高亮 <strong>ALT / AST</strong> 等异常指标并用大白话解释含义，帮您听懂专业术语。",
+    patientPrelimHeading: "医生初步临床印象与开单说明：",
     ordersReceivedTitle: "医生已为您开具以下检查（完成后请上传）：",
     uploadLabel: "上传化验单或影像片（支持 JPG / PNG / PDF）：",
     btnLoadSampleLab: "一键加载样例（肝功能化验单 + 腹部超声）",
@@ -463,54 +513,71 @@ const TRANSLATIONS = {
     qaTitle: "私密自由追问（想问什么直接打字）",
     qaPrivacyPill: "🔒 默认仅自己可见",
     qaDesc:
-      "用自己的话随便提问（不必担心尴尬）。您的完整 AI 提问记录默认完全私密，只有您主动挑选并勾选授权的问题才会同步给医生。",
+      "用自己的话随便提问（不必担心尴尬）。您的完整 AI 提问记录默认完全私密，只有您主动挑选并勾选授权的问答才会发给医生审校。",
     qaPlaceholder: "输入您想问的任何问题（例如：止痛药会导致谷丙转氨酶高吗？严不严重？）...",
     btnQASend: "提问",
+    qaLoadingText: "正在打包跨阶段病历上下文发送至真实 API...",
+    badgeLiveAnswer: "真实 API",
+    badgeSimAnswer: "模拟回答",
     alertEmptyQA: "请先输入您的问题。",
     btnAddToDoctorList: "+ 加入待问医生清单",
     btnSuggestedAdd: "+ 建议加入待问医生清单（自愿）",
     btnAddedToDoctorList: "✓ 已加入清单（点此移出）",
     savedQuestionsTitle: "您主动挑选的【待问医生清单】（可随时移出）：",
     btnRemoveItem: "移出",
-    shareQuestionsTitle: "同时将我挑选的【待问医生清单】同步给医生",
-    shareQuestionsSub: "（可选 — 默认不勾选以保护腼腆患者隐私；您的完整 AI 聊天记录始终保密）",
+    shareQuestionsTitle: "同时将我挑选的问题（连同 AI 当时的答复）发给医生审校",
+    shareQuestionsSub: "（可选 — 默认不勾选以保护隐私；发给医生后可由医生核实或纠正 AI 答复）",
     btnSendLabDoctor: "将检查报告发送至医生工作台 →",
     labSentFeedbackShared:
-      "✓ 已发送！您的化验单解读与挑选的待问清单已同步至医生工作台。",
+      "✓ 已发送！您的化验单解读与挑选的完整问答已同步至医生工作台供审校。",
     labSentFeedbackPrivate:
       "✓ 已发送！仅发送了化验单与初步解读（您的所有个人提问均保持私密）。",
 
-    // Doctor Panel: Pre-Visit & Searchable Orders
-    docPanelTitle: "患者诊前简报与检查开单",
+    // Doctor Panel: Pre-Visit, Preliminary Feedback & Searchable Orders
+    docPanelTitle: "患者诊前简报、初步反馈与检查开单",
     badgeDoctorPanel: "医生主控面板",
     docEmptyTitle: "暂未收到患者提交的诊前简报。",
     docEmptyDesc:
       "请先前往 <strong>1. 患者视角</strong>，生成诊前评估并点击“发送摘要至医生工作台”开始流程。",
     docSymptomsHeading: "患者主诉症状",
     docAISharedHeading: "患者诊前 AI 咨询记录（患者已选择公开）",
-    badgeAISimulated: "AI 辅助（模拟）",
+    badgeAISimulated: "AI 辅助",
     docAIHiddenNotice:
       "<strong>提示：</strong>该患者选择<em>不向医生公开</em>其诊前 AI 咨询记录，当前仅展示患者直接填写的症状。",
 
-    ordersPanelTitle: "医生开具检查单（搜索联想或自由输入）",
+    ordersPanelTitle: "医生初步反馈与开具检查单",
     ordersPanelDesc:
-      "输入检查缩写或部位（如 CT、MRI、超声、肝、血常规）快速检索，也可直接输入医院任意自定义检查项添加。",
+      "先给患者写一段初步临床印象与开单说明，再通过医院检查库搜索（CT、MRI、超声、抽血）或自由输入检查项目。",
+    docPrelimLabel: "医生初步临床印象与开单说明（将同步给患者）：",
+    defaultPrelimNote:
+      "结合您近两周持续乏力、右上腹隐痛及近期熬夜服用止痛药的情况，仅凭症状尚不能直接下诊断。建议先抽血查肝功能并做腹部超声，排查一过性肝细胞应激或轻度脂肪浸润。",
     quickAddLabel: "常用快捷添加：",
     orderSearchPlaceholder: "输入关键词搜索（如 CT、MRI、核磁、肝、超声、心电图）或直接输入检查名...",
     btnAddOrder: "+ 添加",
     selectedOrdersLabel: "已选待开具的检查项目：",
     noOrdersYet: "尚未添加检查项。请在上方搜索输入，或点击快捷标签。",
-    btnConfirmOrders: "确认开单并同步给患者",
+    btnConfirmOrders: "发送初步反馈并确认开单给患者",
     alertNoOrder: "请至少添加一项检查后再确认开单。",
-    docOrderFeedback: "✓ 检查单已开具，并已实时同步至患者端。",
+    docOrderFeedback: "✓ 医生初步反馈与检查单已同步显示在患者端。",
 
-    // Doctor Panel: Lab Results
+    // Doctor Panel: Lab Results & Q&A Audit
     docLabHeading: "患者上传的检查结果与 AI 初步倾向",
     docLabEmpty: "暂未收到患者上传的化验单。请先在“患者视角”完成上传并发送至医生端。",
-    docQuestionsHeading: "患者面诊待问清单",
+    docQuestionsHeading: "患者共享问答审校（查看 AI 原话并可纠错）",
+    docQuestionsAuditHint:
+      "核查患者提了什么问题以及 AI 当时给患者灌输了什么信息；如发现 AI 答偏或容易引起后续治疗异议，可立即标记纠正并同步到大屏。",
     docQuestionsPrivate:
       "<strong>隐私保护提示：</strong>该患者选择暂不向医生共享其追问清单，系统已尊重患者隐私。",
     docNoQuestions: "患者开启了共享开关，但未勾选具体待问问题。",
+    auditAIReplyLabel: "AI 当时给患者的原始答复：",
+    btnAuditAccurate: "✓ AI 解释无误",
+    btnAuditCorrect: "⚠ 标记有误并由医生纠正",
+    auditNotePlaceholder: "填写医生针对此问题的临床补充或纠错意见（批准投屏后将醒目置顶显示）...",
+    sharedBadgeAccurate: "医生已核实无误",
+    sharedBadgeCorrected: "已由医生修正",
+    sharedBadgePending: "面诊待讨论",
+    sharedDoctorReplyTitle: "医生临床修正 / 权威回复：",
+    sharedOriginalAISuperseded: "AI 原始答复（已由医生修正，仅供参考）：",
 
     // Doctor Panel: Final Diagnosis & Reconciliation
     docFinalTitle: "医生最终诊断与诊室共享屏批准",
@@ -555,8 +622,8 @@ const TRANSLATIONS = {
     sharedCarePlanHeading: "医患共同确认的后续计划：",
     sharedLabHeading: "您的检查结果通俗摘要",
     badgeAIVerifiedDisplay: "AI 辅助通俗解读（模拟）",
-    sharedQuestionsHeading: "您主动分享的本次面诊待问问题",
-    badgePatientShared: "患者自愿分享",
+    sharedQuestionsHeading: "经医生审校的患者面诊问答",
+    badgePatientShared: "已共享并经医生审校",
 
     // Shared Display Reconciliation
     alignedTitle: "✓ 双重验证一致：医生临床判断与 AI 分析相符",
@@ -570,11 +637,38 @@ const TRANSLATIONS = {
     compareDocLabel: "医生最终诊断（权威结论）",
     btnWhyDifferent: "为什么医生的诊断和 AI 说的不一样？",
     btnHideWhyDifferent: "收起解释",
+    reconcileLoading: "正在通过真实 API 结合完整病历上下文生成分歧解释...",
     reconcileExpHeader: "AI 协助解释：为什么医生的判断比算法更贴合您的情况（模拟）",
+    reconcileExpHeaderLive: "AI 协助解释：为什么医生的判断比算法更贴合您的情况（真实 API）",
     reconcileExpIntro:
       "AI 草案之所以先猜<strong>脂肪肝</strong>，仅仅因为在常规人群数据库里，“转氨酶偏高 + 超声偏亮”在统计学上最常见。但<strong>医生的最终诊断对您本人更准确</strong>，因为医生综合了算法无法获取的关键现实信息：",
     reconcileExpFooter:
       "AI 无法替代医生的线下体格检查和个体化临床经验——遵循医生确认后的诊疗计划是最稳妥安全的选择。",
+
+    // Option B Modal
+    apiModalTitle: "AI 引擎模式配置与跨阶段上下文记忆",
+    apiModalDesc:
+      "默认使用<strong>离线模拟模式</strong>，零费用、零报错、绝不泄露密钥。阅卷老师或开发者也可在下方自填 OpenAI 兼容 API Key（BYOK），切换为真实大模型模式体验。",
+    modeSimTitle: "模拟模式（默认 / 离线安全）",
+    modeSimSub: "使用本地结构化临床模板演示完整交互，无需 API Key。",
+    modeLiveTitle: "真实 API 模式（自填 Key / 可选）",
+    modeLiveSub: "每次调用会将下方完整跨阶段病历打包发送给 OpenAI / Gemini / DeepSeek 等大模型。",
+    apiKeySecurityNote:
+      "<strong>安全声明：</strong>您填入的 API Key <em>仅暂存在当前网页内存</em>中，刷新页面自动销毁，绝不写入本地文件或上传至 GitHub。",
+    apiEndpointLabel: "API 接口地址（OpenAI 兼容 Chat Completions 格式）：",
+    apiModelLabel: "模型名称（如 gpt-4o-mini、gemini-2.5-flash、deepseek-chat）：",
+    apiKeyLabel: "您的 API Key（仅存内存）：",
+    apiKeyPlaceholder: "sk-...",
+    btnClearKey: "清空 Key",
+    btnSaveApiConfig: "保存引擎配置",
+    apiSavedSim: "✓ 已切换为离线模拟模式。",
+    apiSavedLive: "✓ 已启用真实 API 模式！后续 AI 生成将自动携带下方完整跨阶段上下文。",
+    apiKeyMissingAlert: "请先输入您的 API Key 再启用真实 API 模式，或切回模拟模式。",
+    apiFallbackNotice:
+      "真实 API 请求未能完成（请检查 Key、模型名或浏览器跨域限制），已自动安全回退至模拟模式输出。",
+    contextTitle: "实时跨阶段上下文记忆（appState 记忆快照）",
+    contextDesc:
+      "大模型 API 本身是无状态的（失忆的），CoConsult 负责在前端记住各阶段信息，调用 API 时会把下面整份上下文打包发给模型，确保 AI 记得之前的检查报告：",
 
     // Sample Clinical Content
     sampleSymptomText:
@@ -674,11 +768,12 @@ const TRANSLATIONS = {
 
   it: {
     subtitle: "Sistema di Consultazione Trasparente Medico–Paziente–IA",
-    statusSimulated: "Motore IA: Simulato (Slot API Riservato)",
+    statusSimulated: "Motore IA: Simulato (Configura API)",
+    statusLive: "Motore IA: API Live Attiva",
     navPatientTitle: "1. Vista Paziente",
     navPatientSub: "Pre-visita e Referti",
     navDoctorTitle: "2. Pannello Medico",
-    navDoctorSub: "Esami, Revisione e Controllo",
+    navDoctorSub: "Esami, Verifica e Controllo",
     navSharedTitle: "3. Schermo Condiviso",
     navSharedSub: "Display in Ambulatorio",
 
@@ -692,8 +787,9 @@ const TRANSLATIONS = {
       "Esempio: Mi sento molto stanco da due settimane, con un leggero fastidio all'addome superiore destro e scarso appetito...",
     btnLoadSample: "Carica Caso Esempio (Fegato / Stanchezza)",
     btnAskAI: "Ottieni Valutazione Pre-Visita IA",
-    aiLoadingText: "Il motore IA simulato sta strutturando i tuoi sintomi...",
+    aiLoadingText: "Il motore IA sta strutturando i tuoi sintomi...",
     badgeAIPrevisit: "Sintesi Pre-Visita Assistita da IA (Simulata)",
+    badgeAIPrevisitLive: "Sintesi Pre-Visita Assistita da IA (API Live)",
     aiDisclaimer: "Solo per preparazione alla visita — non è una diagnosi",
     shareCheckTitle: "Condividi apertamente la mia sintesi IA con il medico",
     shareCheckSub: "(Favorisce il dialogo trasparente evitando di nascondere l'uso dell'IA)",
@@ -708,6 +804,7 @@ const TRANSLATIONS = {
     labUploadTitle: "Carica Referti / Immagini e Spiegazione Chiara",
     labUploadDesc:
       "Carica le analisi del sangue o l'ecografia (o carica l'esempio). CoConsult evidenzia valori come <strong>ALT / AST</strong> in linguaggio semplice prima dell'incontro con il medico.",
+    patientPrelimHeading: "Impressione Clinica Preliminare del Medico:",
     ordersReceivedTitle: "Esami Prescritti dal Medico (Pronti per il Caricamento):",
     uploadLabel: "Carica Analisi del Sangue o Immagine Diagnostica (JPG / PNG / PDF):",
     btnLoadSampleLab: "Carica Referto Epatico ed Ecografia di Esempio",
@@ -722,54 +819,71 @@ const TRANSLATIONS = {
     qaTitle: "Fai Qualsiasi Domanda di Approfondimento (Testo Libero)",
     qaPrivacyPill: "🔒 Privato per Impostazione Predefinita",
     qaDesc:
-      "Scrivi liberamente qualsiasi dubbio. La tua chat IA rimane completamente privata: decidi tu se selezionare singole domande da condividere con il medico.",
+      "Scrivi liberamente qualsiasi dubbio. La tua chat IA rimane privata: decidi tu se selezionare singole domande (insieme alla risposta IA) da far verificare al medico.",
     qaPlaceholder: "Scrivi qui la tua domanda (es. Gli antidolorifici alzano l'ALT? È grave?)...",
     btnQASend: "Chiedi all'IA",
+    qaLoadingText: "Invio del contesto clinico completo all'API Live...",
+    badgeLiveAnswer: "API Live",
+    badgeSimAnswer: "Simulato",
     alertEmptyQA: "Inserisci prima una domanda.",
     btnAddToDoctorList: "+ Aggiungi alla Lista per il Medico",
     btnSuggestedAdd: "+ Consigliato: Aggiungi alla Lista per il Medico",
     btnAddedToDoctorList: "✓ Aggiunta (Clicca per Rimuovere)",
     savedQuestionsTitle: "Domande Selezionate da Te per il Medico (Condivisione Opzionale):",
     btnRemoveItem: "Rimuovi",
-    shareQuestionsTitle: "Condividi anche la mia lista di 'Domande per il Medico'",
-    shareQuestionsSub: "(Opzionale — deselezionato per tutelare la privacy; la chat IA completa resta sempre privata)",
+    shareQuestionsTitle: "Condividi anche le domande selezionate (e le risposte dell'IA) con il medico",
+    shareQuestionsSub: "(Opzionale — deselezionato per tutelare la privacy; consente al medico di verificare o correggere l'IA)",
     btnSendLabDoctor: "Invia Referto al Pannello Medico →",
     labSentFeedbackShared:
-      "✓ Inviato! La spiegazione del referto e le domande selezionate sono ora nel Pannello Medico.",
+      "✓ Inviato! Il referto e le domande/risposte selezionate sono pronti per la revisione medica.",
     labSentFeedbackPrivate:
       "✓ Inviato! È stato inviato solo il referto (tutte le tue domande personali restano private).",
 
-    // Doctor Panel: Pre-Visit & Searchable Orders
-    docPanelTitle: "Scheda Pre-Visita e Prescrizione Esami Diagnostici",
+    // Doctor Panel: Pre-Visit, Preliminary Feedback & Searchable Orders
+    docPanelTitle: "Scheda Pre-Visita, Feedback Preliminare e Prescrizione Esami",
     badgeDoctorPanel: "Controllo Clinico",
     docEmptyTitle: "Nessuna scheda pre-visita ricevuta al momento.",
     docEmptyDesc:
       "Vai su <strong>1. Vista Paziente</strong>, genera la valutazione pre-visita e clicca su 'Invia Sintesi al Pannello Medico'.",
     docSymptomsHeading: "Sintomi Riferiti dal Paziente",
     docAISharedHeading: "Consultazione Pre-Visita IA del Paziente (Condivisa)",
-    badgeAISimulated: "Assistito da IA (Simulato)",
+    badgeAISimulated: "Assistito da IA",
     docAIHiddenNotice:
       "<strong>Avviso:</strong> Il paziente ha scelto di <em>non</em> condividere la sintesi IA pre-visita. Sono mostrati solo i sintomi diretti.",
 
-    ordersPanelTitle: "Prescrizione Esami Clinici (Ricerca o Inserimento Libero)",
+    ordersPanelTitle: "Feedback Clinico Preliminare e Prescrizione Esami",
     ordersPanelDesc:
-      "Cerca per tipologia o distretto (es. CT, TC, MRI, ecografia, fegato, sangue) oppure digita qualsiasi esame personalizzato.",
+      "Scrivi una prima impressione per il paziente, poi cerca nel catalogo ospedaliero (TC, MRI, ecografia, sangue) o digita un esame personalizzato.",
+    docPrelimLabel: "Impressione Preliminare e Motivazione degli Esami (Inviata al Paziente):",
+    defaultPrelimNote:
+      "Considerando la stanchezza da due settimane, il lieve fastidio addominale destro e l'uso recente di antidolorifici, non possiamo ancora formulare una diagnosi. Prescrivo analisi epatiche ed ecografia addominale per valutare un eventuale stress epatico temporaneo.",
     quickAddLabel: "Aggiunta rapida:",
     orderSearchPlaceholder: "Cerca esami (es. TC, MRI, ALT, Ecografia, ECG) o scrivi un esame...",
     btnAddOrder: "+ Aggiungi",
     selectedOrdersLabel: "Esami Selezionati da Prescrivere:",
     noOrdersYet: "Nessun esame selezionato. Cerca sopra o usa i pulsanti rapidi.",
-    btnConfirmOrders: "Conferma e Invia Prescrizioni al Paziente",
+    btnConfirmOrders: "Invia Feedback Preliminare e Prescrizioni al Paziente",
     alertNoOrder: "Aggiungi almeno un esame clinico prima di confermare.",
-    docOrderFeedback: "✓ Prescrizioni confermate e sincronizzate nella Vista Paziente.",
+    docOrderFeedback: "✓ Feedback preliminare e prescrizioni sincronizzati nella Vista Paziente.",
 
-    // Doctor Panel: Lab Results
+    // Doctor Panel: Lab Results & Q&A Audit
     docLabHeading: "Referti Caricati dal Paziente e Ipotesi Preliminare IA",
     docLabEmpty: "Nessun referto caricato al momento. Completa il caricamento nella Vista Paziente per visualizzarlo qui.",
-    docQuestionsHeading: "Domande del Paziente per la Visita",
+    docQuestionsHeading: "Verifica Medica delle Domande e Risposte IA Condivise",
+    docQuestionsAuditHint:
+      "Controlla sia la domanda del paziente che la risposta generata dall'IA. Conferma le risposte corrette o segnala e correggi eventuali imprecisioni prima di proiettare sullo Schermo Condiviso.",
     docQuestionsPrivate:
       "<strong>Privacy Rispettata:</strong> Il paziente ha scelto di mantenere private le proprie domande per ora.",
     docNoQuestions: "Il paziente ha attivato la condivisione ma non ha selezionato domande specifiche.",
+    auditAIReplyLabel: "Risposta Originale IA Mostrata al Paziente:",
+    btnAuditAccurate: "✓ Risposta IA Corretta",
+    btnAuditCorrect: "⚠ Segnala e Correggi IA",
+    auditNotePlaceholder: "Inserisci chiarimento o correzione clinica (evidenziata sullo Schermo Condiviso)...",
+    sharedBadgeAccurate: "Verificato dal Medico",
+    sharedBadgeCorrected: "Corretto dal Medico",
+    sharedBadgePending: "Da Discutere in Visita",
+    sharedDoctorReplyTitle: "Chiarimento / Correzione Clinica del Medico:",
+    sharedOriginalAISuperseded: "Risposta IA Originale (Superata dal Medico):",
 
     // Doctor Panel: Final Diagnosis & Reconciliation
     docFinalTitle: "Diagnosi Clinica Finale e Approvazione Schermo Condiviso",
@@ -814,8 +928,8 @@ const TRANSLATIONS = {
     sharedCarePlanHeading: "Piano Condiviso e Prossimi Passi:",
     sharedLabHeading: "Sintesi Chiara dei Tuoi Esami",
     badgeAIVerifiedDisplay: "Spiegazione Assistita da IA (Simulata)",
-    sharedQuestionsHeading: "Le Tue Domande Selezionate per la Visita",
-    badgePatientShared: "Condiviso dal Paziente",
+    sharedQuestionsHeading: "Domande del Paziente Verificate dal Medico",
+    badgePatientShared: "Condivise e Verificate",
 
     // Shared Display Reconciliation
     alignedTitle: "✓ Doppia Verifica: Medico e IA Allineati",
@@ -829,11 +943,38 @@ const TRANSLATIONS = {
     compareDocLabel: "Diagnosi Finale del Medico (Autorevole)",
     btnWhyDifferent: "Perché la diagnosi del medico è diversa da quella dell'IA?",
     btnHideWhyDifferent: "Nascondi spiegazione",
+    reconcileLoading: "Generazione della spiegazione tramite API Live con contesto clinico completo...",
     reconcileExpHeader: "Spiegazione IA a Supporto della Decisione Medica (Simulata)",
+    reconcileExpHeaderLive: "Spiegazione IA a Supporto della Decisione Medica (API Live)",
     reconcileExpIntro:
       "La bozza IA aveva ipotizzato una <strong>Steatosi Epatica</strong> solo perché valori elevati di ALT/AST con ecografia brillante sono lo schema statisticamente più frequente. Tuttavia, <strong>la diagnosi del medico è più accurata per il tuo caso specifico</strong> perché integra fattori reali invisibili all'algoritmo:",
     reconcileExpFooter:
       "L'IA non può sostituire l'esame obiettivo né il contesto individuale: seguire il piano confermato dal medico è la scelta più sicura.",
+
+    // Option B Modal
+    apiModalTitle: "Impostazioni Motore IA e Memoria di Contesto",
+    apiModalDesc:
+      "Per impostazione predefinita CoConsult opera in <strong>Modalità Simulata</strong> (offline, sicura, senza chiavi). I valutatori possono opzionalmente inserire la propria API Key compatibile OpenAI (BYOK) per testare risposte LLM dal vivo.",
+    modeSimTitle: "Modalità Simulata (Predefinita / Offline)",
+    modeSimSub: "Usa modelli clinici locali strutturati. Affidabile, nessuna configurazione richiesta.",
+    modeLiveTitle: "Modalità API Live (BYOK — Opzionale)",
+    modeLiveSub: "Invia il contesto clinico multi-fase a un endpoint compatibile OpenAI (OpenAI / Gemini / DeepSeek).",
+    apiKeySecurityNote:
+      "<strong>Nota di Sicurezza:</strong> La tua API Key resta <em>solo nella memoria volatile del browser</em>. Si cancella al ricaricamento della pagina e non viene mai salvata su GitHub.",
+    apiEndpointLabel: "URL Endpoint API (OpenAI-Compatible Chat Completions):",
+    apiModelLabel: "Nome Modello (es. gpt-4o-mini, gemini-2.5-flash, deepseek-chat):",
+    apiKeyLabel: "La tua API Key (Solo in Memoria):",
+    apiKeyPlaceholder: "sk-...",
+    btnClearKey: "Cancella Key",
+    btnSaveApiConfig: "Salva Impostazioni Motore IA",
+    apiSavedSim: "✓ Modalità Simulata (Offline) attiva.",
+    apiSavedLive: "✓ Modalità API Live attiva! Le prossime richieste invieranno il contesto clinico completo.",
+    apiKeyMissingAlert: "Inserisci una API Key per attivare la Modalità Live, oppure scegli la Modalità Simulata.",
+    apiFallbackNotice:
+      "Chiamata API Live non riuscita (controlla chiave, modello o policy CORS). Ripristinato l'output sicuro in Modalità Simulata.",
+    contextTitle: "Memoria di Contesto Multi-Fase (appState)",
+    contextDesc:
+      "Poiché le API LLM sono stateless (senza memoria), CoConsult mantiene lo stato clinico qui e lo allega a ogni richiesta Live API affinché l'IA ricordi sintomi, referti e decisioni del medico:",
 
     // Sample Clinical Content
     sampleSymptomText:
