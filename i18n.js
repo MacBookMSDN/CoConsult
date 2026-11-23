@@ -1,7 +1,7 @@
 // =========================================================
-// CoConsult v3.1 (Final Prototype) — Trilingual Pack (EN/ZH/IT)
-// Includes clinician preliminary feedback, Q&A audit/correction,
-// and Option B (BYOK Live API + Cross-Stage Context Inspector)
+// CoConsult v3.3 (Final Prototype) — Trilingual Pack (EN/ZH/IT)
+// Includes dynamic Live/Simulated labels, optional clinician-
+// triggered AI home action plans, and strict attribution copy
 // =========================================================
 
 const TEST_CATALOG = [
@@ -197,6 +197,7 @@ const TRANSLATIONS = {
     uploadLabel: "Upload Blood Test Report or Scan Image (JPG / PNG / PDF):",
     btnLoadSampleLab: "Load Sample Liver Lab & Ultrasound",
     btnAnalyseLab: "Explain Report with AI (Simulated)",
+    btnAnalyseLabLive: "Explain Uploaded Image with AI (Live Vision API)",
     labLoadingText: "Simulated OCR & AI explainer are extracting key markers (ALT / AST / Ultrasound)...",
     badgeAILab: "AI Lab & Scan Explainer (Simulated)",
     labDisclaimer: "Preliminary explanation only — final diagnosis rests with your doctor",
@@ -235,7 +236,8 @@ const TRANSLATIONS = {
       "Go to <strong>1. Patient View</strong>, run a pre-visit appraisal, and click 'Send Summary to Doctor Dashboard' to begin.",
     docSymptomsHeading: "Patient-Reported Symptoms",
     docAISharedHeading: "Patient's Pre-Visit AI Query (Shared Openly)",
-    badgeAISimulated: "AI-Assisted",
+    badgeAISimulated: "AI-Assisted (Simulated)",
+    badgeAILive: "AI-Assisted (Live API)",
     docAIHiddenNotice:
       "<strong>Notice:</strong> The patient chose <em>not</em> to share their pre-visit AI summary. Only direct symptom notes are shown above.",
 
@@ -273,14 +275,16 @@ const TRANSLATIONS = {
     sharedDoctorReplyTitle: "Doctor's Clinical Clarification / Correction:",
     sharedOriginalAISuperseded: "Original AI Reply (Superseded by Doctor):",
 
-    // Doctor Panel: Final Diagnosis & Reconciliation
+    // Doctor Panel: Final Diagnosis, Optional AI Action Plan & Reconciliation
     docFinalTitle: "Final Clinical Diagnosis & Shared Screen Approval",
     badgeDoctorControl: "Final Authority",
     docFinalEmpty: "Review the patient's uploaded lab results above before confirming the final diagnosis and unlocking the Shared Display.",
-    docFinalDesc:
-      "Compare the AI's preliminary impression (Mild Non-Alcoholic Fatty Liver) against your clinical assessment, choose whether to agree or override, then approve content for the in-room screen.",
+    docFinalDescTemplate:
+      "Compare the AI's preliminary impression ({aiDraft}) against your clinical assessment, choose whether to agree or override, then approve content for the in-room screen.",
     decisionAgreeTitle: "Agree with AI Preliminary Impression",
-    decisionAgreeSub: "Confirm Mild Non-Alcoholic Fatty Liver (NAFLD) — displays dual-verification alignment.",
+    decisionAgreeSubTemplate:
+      "Confirm \"{aiDraft}\" — displays dual-verification alignment on the Shared Display.",
+    agreeSuffix: " — Clinically Confirmed",
     decisionOverrideTitle: "Override AI Impression (Use Clinician Diagnosis)",
     decisionOverrideSub: "Supersede AI with your clinical diagnosis and let CoConsult explain your reasoning to the patient.",
     overrideDiagLabel: "Clinician's Final Diagnosis:",
@@ -293,9 +297,23 @@ const TRANSLATIONS = {
     reasonHistory: "Patient's broader medical history and individual metabolic profile",
     customReasonLabel: "Additional Clinical Note (Optional):",
     customReasonPlaceholder: "Optional: Add any extra nuance you want reflected in the patient explanation...",
-    carePlanLabel: "Final Care Plan & Next Steps (Displayed on Shared Screen):",
+    carePlanLabel: "Clinician's Core Care Plan & Medical Orders (Doctor-Authored):",
     defaultCarePlan:
       "Pause non-essential painkillers and alcohol, prioritise sleep recovery, and repeat a liver function blood test (ALT/AST) in 4 weeks to confirm levels return to normal.",
+
+    // Optional Clinician-Triggered AI Action Plan
+    aiPlanPanelTitle: "Optional: AI-Assisted Home Action Plan (Lifestyle & Execution Details)",
+    aiPlanPanelDesc:
+      "100% optional. Clinicians who prefer purely manual orders can skip this. If clicked, AI drafts step-by-step home guidance (e.g., weight loss, smoking cessation, sleep recovery) based on your diagnosis for you to edit—clearly separated from your orders on the Shared Display.",
+    btnDraftAIPlan: "✨ Draft Home Execution Steps with AI (Optional)",
+    btnRedraftAIPlan: "↻ Regenerate AI Execution Steps",
+    btnClearAIPlan: "Remove AI Draft (Doctor Orders Only)",
+    aiPlanLoadingLive: "Live API is drafting tailored home execution steps from your diagnosis...",
+    aiPlanLoadingSim: "Simulated AI is generating structured home execution steps...",
+    aiPlanBadgeLive: "AI-Drafted (Live API) · Clinician-Reviewed",
+    aiPlanBadgeSim: "AI-Drafted (Simulated) · Clinician-Reviewed",
+    aiPlanEditHint: "Editable by clinician before projecting to the Shared Display",
+
     btnApproveShared: "Approve & Project to Shared Display →",
     btnRevokeShared: "Lock / Clear Shared Screen",
     docApproveFeedback: "✓ Approved! Switch to '3. Shared Display' to review the in-room screen with the patient.",
@@ -313,9 +331,12 @@ const TRANSLATIONS = {
     btnAccessibleOff: "Aa Simplified & Large-Text Mode: ON",
     sharedDocDiagHeading: "Clinician's Final Diagnosis",
     badgeDoctorVerified: "Verified by Doctor",
-    sharedCarePlanHeading: "Agreed Next Steps & Care Plan:",
+    badgeDoctorAuthored: "Doctor-Authored",
+    sharedCarePlanHeading: "Clinician's Core Care Plan & Medical Orders:",
+    sharedAIPlanHeading: "Home Execution Guide (Step-by-Step Practical Tips):",
     sharedLabHeading: "Plain-Language Summary of Your Test Results",
     badgeAIVerifiedDisplay: "AI-Assisted Explanation (Simulated)",
+    badgeAIVerifiedDisplayLive: "AI-Assisted Explanation (Live Vision API)",
     sharedQuestionsHeading: "Clinician-Reviewed Discussion Questions",
     badgePatientShared: "Shared & Audited",
 
@@ -327,6 +348,7 @@ const TRANSLATIONS = {
     overrideIntro:
       "Because an AI only sees isolated test numbers, your doctor's full clinical assessment takes priority.",
     compareAILabel: "AI Preliminary Draft (Simulated)",
+    compareAILabelLive: "AI Preliminary Draft (Live Vision API)",
     compareAIDraftText: "Mild Non-Alcoholic Fatty Liver (NAFLD)",
     compareDocLabel: "Doctor's Final Diagnosis (Authoritative)",
     btnWhyDifferent: "Why does the doctor's diagnosis differ from the AI?",
@@ -335,7 +357,7 @@ const TRANSLATIONS = {
     reconcileExpHeader: "AI Explanation Supporting Your Doctor's Clinical Decision (Simulated)",
     reconcileExpHeaderLive: "AI Explanation Supporting Your Doctor's Clinical Decision (Live API)",
     reconcileExpIntro:
-      "The AI draft flagged <strong>Fatty Liver</strong> simply because raised ALT/AST with a slightly bright ultrasound is the most statistically common pattern in general databases. However, <strong>your doctor's diagnosis is more accurate for you personally</strong> because they evaluated critical real-world factors that an algorithm cannot see:",
+      "The AI draft flagged <strong>{aiDraft}</strong> based only on isolated test numbers and scan patterns. However, <strong>your doctor's diagnosis is more accurate for you personally</strong> because they evaluated critical real-world factors that an algorithm cannot see:",
     reconcileExpFooter:
       "AI tools cannot replace physical examination or individual clinical context—following your doctor's confirmed plan is the safest path forward.",
 
@@ -363,6 +385,16 @@ const TRANSLATIONS = {
     contextTitle: "Live Cross-Stage Context Memory (appState)",
     contextDesc:
       "Because LLM APIs are stateless, CoConsult stores clinical state across stages here and packages it with every Live API request so the AI remembers earlier symptoms, lab reports, and doctor decisions:",
+
+    // Simulated AI Home Action Plan Templates
+    aiActionTemplates: {
+      weight:
+        "1. Safe & Sustainable Weight-Loss Start: Aim for gradual loss (0.5–1 kg per week) rather than crash dieting, which can temporarily stress the liver.\n2. Joint-Friendly Activity: Start with low-impact exercise such as brisk walking, swimming, or cycling for 20–30 minutes, 4–5 days a week to protect knees.\n3. Practical Plate Rule: Fill half your plate with non-starchy vegetables, one-quarter with lean protein, and cut sugary drinks and late-night snacks.\n4. Sleep & Recovery: Set a fixed bedtime target before 23:30; consider a specialist weight-management clinic referral if progress stalls.",
+      smoking:
+        "1. Set a Quit Date & Clear Triggers: Pick a concrete quit date within 7 days and remove lighters, ashtrays, and spare packs at home and work.\n2. Manage Cravings (4D Rule): Delay 5 minutes, Deep breathe, Drink water, Distract hands—most acute nicotine urges pass within 3–5 minutes.\n3. Evidence-Based Support: Ask your doctor or pharmacist about nicotine replacement therapy (patches/gum) to double quit success rates.\n4. Track Milestones: Log smoke-free days and pair quitting with regular sleep and liver follow-up checks.",
+      general:
+        "1. Medication Safety: Pause non-essential OTC painkillers and herbal supplements; always check active ingredients before taking cold or headache tablets.\n2. Liver-Friendly Routine: Strictly avoid alcohol for the next 4 weeks and keep meals light, balanced, and low in fried or sugary foods.\n3. Sleep Reset: Move bedtime earlier by 30 minutes every few nights and avoid screens 45 minutes before sleep to reduce fatigue stress.\n4. Follow-Up Prep: Book your 4-week repeat liver blood test and note any return of abdominal discomfort.",
+    },
 
     // Sample Clinical Content
     sampleSymptomText:
@@ -503,6 +535,7 @@ const TRANSLATIONS = {
     uploadLabel: "上传化验单或影像片（支持 JPG / PNG / PDF）：",
     btnLoadSampleLab: "一键加载样例（肝功能化验单 + 腹部超声）",
     btnAnalyseLab: "让 AI 通俗解读报告（模拟）",
+    btnAnalyseLabLive: "让 AI 识图通俗解读（真实 API）",
     labLoadingText: "模拟 OCR 与 AI 解读引擎正在提取核心指标（ALT / AST / 超声）...",
     badgeAILab: "AI 化验单与影像解读（模拟输出）",
     labDisclaimer: "仅作初步科普与理解辅助 — 最终诊断以医生为准",
@@ -541,7 +574,8 @@ const TRANSLATIONS = {
       "请先前往 <strong>1. 患者视角</strong>，生成诊前评估并点击“发送摘要至医生工作台”开始流程。",
     docSymptomsHeading: "患者主诉症状",
     docAISharedHeading: "患者诊前 AI 咨询记录（患者已选择公开）",
-    badgeAISimulated: "AI 辅助",
+    badgeAISimulated: "AI 辅助（模拟）",
+    badgeAILive: "AI 辅助（真实 API）",
     docAIHiddenNotice:
       "<strong>提示：</strong>该患者选择<em>不向医生公开</em>其诊前 AI 咨询记录，当前仅展示患者直接填写的症状。",
 
@@ -579,14 +613,16 @@ const TRANSLATIONS = {
     sharedDoctorReplyTitle: "医生临床修正 / 权威回复：",
     sharedOriginalAISuperseded: "AI 原始答复（已由医生修正，仅供参考）：",
 
-    // Doctor Panel: Final Diagnosis & Reconciliation
+    // Doctor Panel: Final Diagnosis, Optional AI Action Plan & Reconciliation
     docFinalTitle: "医生最终诊断与诊室共享屏批准",
     badgeDoctorControl: "医生最终裁决权",
     docFinalEmpty: "收到患者上传的检查结果后，即可在此核对 AI 初步倾向、下达最终诊断并解锁诊室共享屏。",
-    docFinalDesc:
-      "请结合临床经验核对 AI 的初步倾向（轻度非酒精性脂肪肝），选择同意或推翻并填写依据，最后点击批准投屏。",
+    docFinalDescTemplate:
+      "请结合临床经验核对 AI 的初步倾向（{aiDraft}），选择同意或推翻并填写依据，最后点击批准投屏。",
     decisionAgreeTitle: "同意 AI 初步倾向（双重验证）",
-    decisionAgreeSub: "确认为轻度非酒精性脂肪肝（NAFLD）——共享屏将显示医-AI 结论一致，增强患者信心。",
+    decisionAgreeSubTemplate:
+      "确认为「{aiDraft}」——共享屏将显示医-AI 结论一致，增强患者信心。",
+    agreeSuffix: " —— 经医生临床确认",
     decisionOverrideTitle: "推翻 AI 倾向（以医生临床终诊为准）",
     decisionOverrideSub: "用您的临床判断覆盖 AI 草案，并由 AI 协助向患者解释为何医生判断更准确。",
     overrideDiagLabel: "医生最终临床诊断：",
@@ -599,9 +635,23 @@ const TRANSLATIONS = {
     reasonHistory: "患者既往整体病史与个体代谢特征",
     customReasonLabel: "补充临床说明（可选）：",
     customReasonPlaceholder: "可选：输入您希望患者了解的额外临床判断细节...",
-    carePlanLabel: "最终诊疗建议与后续计划（将展示在共享大屏）：",
+    carePlanLabel: "医生核心诊疗意见与医嘱（医生亲拟，将展示在共享大屏）：",
     defaultCarePlan:
       "近期暂停非必要止痛药并严格戒酒，规律作息避免熬夜，4 周后复查肝功能（ALT/AST）确认指标恢复正常。",
+
+    // Optional Clinician-Triggered AI Action Plan
+    aiPlanPanelTitle: "可选工具：让 AI 根据您的诊断起草具体居家执行细则",
+    aiPlanPanelDesc:
+      "完全由医生自主决定是否使用：不想用 AI 可直接跳过；如需省事，点下方按钮即可让 AI 针对您写的减重、戒烟、作息调整等展开具体做法供您修改，大屏上会明确区分“医生亲拟”与“AI 辅助起草”。",
+    btnDraftAIPlan: "✨ 让 AI 起草具体居家执行细则（可选）",
+    btnRedraftAIPlan: "↻ 重新让 AI 起草执行细则",
+    btnClearAIPlan: "移除 AI 细则（仅保留医生亲拟医嘱）",
+    aiPlanLoadingLive: "正在通过真实 API 结合您的最终诊断起草居家执行细则...",
+    aiPlanLoadingSim: "模拟 AI 正在生成结构化居家执行细则...",
+    aiPlanBadgeLive: "AI 辅助起草（真实 API）· 经医生审阅",
+    aiPlanBadgeSim: "AI 辅助起草（模拟）· 经医生审阅",
+    aiPlanEditHint: "投屏前医生可任意修改下方细则，最终把关权归医生",
+
     btnApproveShared: "批准并投屏至诊室共享屏 →",
     btnRevokeShared: "撤销投屏 / 重新锁定大屏",
     docApproveFeedback: "✓ 已批准投屏！请切至顶部“3. 诊室共享屏”查看医患同看画面。",
@@ -619,9 +669,12 @@ const TRANSLATIONS = {
     btnAccessibleOff: "Aa 大字简明无障碍模式：开",
     sharedDocDiagHeading: "医生最终临床诊断",
     badgeDoctorVerified: "医生已核准",
-    sharedCarePlanHeading: "医患共同确认的后续计划：",
+    badgeDoctorAuthored: "医生亲拟",
+    sharedCarePlanHeading: "医生核心医嘱与诊疗计划：",
+    sharedAIPlanHeading: "居家分步执行细则（生活干预指南）：",
     sharedLabHeading: "您的检查结果通俗摘要",
     badgeAIVerifiedDisplay: "AI 辅助通俗解读（模拟）",
+    badgeAIVerifiedDisplayLive: "AI 辅助通俗解读（真实 API 识图）",
     sharedQuestionsHeading: "经医生审校的患者面诊问答",
     badgePatientShared: "已共享并经医生审校",
 
@@ -633,6 +686,7 @@ const TRANSLATIONS = {
     overrideIntro:
       "AI 只能看到孤立的化验单数字，医生结合面对面检查做出的最终判断更具临床权威性。",
     compareAILabel: "AI 初步草案（模拟，仅供参考）",
+    compareAILabelLive: "AI 初步草案（真实 API，仅供参考）",
     compareAIDraftText: "轻度非酒精性脂肪肝（NAFLD）",
     compareDocLabel: "医生最终诊断（权威结论）",
     btnWhyDifferent: "为什么医生的诊断和 AI 说的不一样？",
@@ -641,7 +695,7 @@ const TRANSLATIONS = {
     reconcileExpHeader: "AI 协助解释：为什么医生的判断比算法更贴合您的情况（模拟）",
     reconcileExpHeaderLive: "AI 协助解释：为什么医生的判断比算法更贴合您的情况（真实 API）",
     reconcileExpIntro:
-      "AI 草案之所以先猜<strong>脂肪肝</strong>，仅仅因为在常规人群数据库里，“转氨酶偏高 + 超声偏亮”在统计学上最常见。但<strong>医生的最终诊断对您本人更准确</strong>，因为医生综合了算法无法获取的关键现实信息：",
+      "AI 草案之所以给出<strong>{aiDraft}</strong>，仅仅因为算法只看到了孤立的化验数值和图像特征。但<strong>医生的最终诊断对您本人更准确</strong>，因为医生综合了算法无法获取的关键现实信息：",
     reconcileExpFooter:
       "AI 无法替代医生的线下体格检查和个体化临床经验——遵循医生确认后的诊疗计划是最稳妥安全的选择。",
 
@@ -669,6 +723,16 @@ const TRANSLATIONS = {
     contextTitle: "实时跨阶段上下文记忆（appState 记忆快照）",
     contextDesc:
       "大模型 API 本身是无状态的（失忆的），CoConsult 负责在前端记住各阶段信息，调用 API 时会把下面整份上下文打包发给模型，确保 AI 记得之前的检查报告：",
+
+    // Simulated AI Home Action Plan Templates
+    aiActionTemplates: {
+      weight:
+        "1. 科学稳步减重：目标控制在每周减重 0.5–1 公斤，切忌极端节食（短期暴瘦反而可能加重肝脏代谢负担）。\n2. 护膝低冲击运动：高 BMI 阶段优先选择快走、游泳、椭圆机或骑行，从每次 20–30 分钟、每周 4–5 次起步，避免一开始就剧烈跑步跳绳伤膝盖。\n3. 饮食结构微调：戒掉含糖饮料和夜宵，每餐保证一半非淀粉蔬菜 + 四分之一优质蛋白（鱼、去皮禽肉、豆制品），主食适当替换为粗杂粮。\n4. 作息与门诊支持：尽量在 23:30 前入睡；如自行减重困难，可按医生建议前往医院减重门诊评估医学营养方案。",
+      smoking:
+        "1. 设定明确戒烟日：选定未来 7 天内的某一天正式启动，提前清理家中与办公桌的香烟、打火机和烟灰缸。\n2. 烟瘾来袭 4 步应对：深呼吸、喝一杯温水、转移注意力（嚼无糖口香糖或散步）、拖延 5 分钟——绝大多数强烈烟瘾会在 3–5 分钟内消退。\n3. 借助专业戒烟工具：如烟龄较长、戒断反应明显，可咨询医生或戒烟门诊使用尼古丁贴片/咀嚼胶提高成功率。\n4. 同步护肝作息：记录无烟打卡天数，配合规律作息与 4 周后的指标复查。",
+      general:
+        "1. 用药安全核对：近期暂停非必要止痛药、感冒复方药及来路不明的保健品，避免叠加加重肝脏代谢负担。\n2. 严格戒酒与清淡饮食：未来 4 周彻底远离酒精饮品，减少油炸、高糖及深夜进食，多喝白开水。\n3. 循序拉回作息：每 2–3 天将入睡时间提前 30 分钟，睡前 45 分钟远离手机蓝光，优先修复熬夜导致的疲劳。\n4. 复查准备：提前预约 4 周后的肝功能复查（抽血前空腹 8 小时），如期间出现腹痛加剧或眼白发黄请及时复诊。",
+    },
 
     // Sample Clinical Content
     sampleSymptomText:
@@ -809,6 +873,7 @@ const TRANSLATIONS = {
     uploadLabel: "Carica Analisi del Sangue o Immagine Diagnostica (JPG / PNG / PDF):",
     btnLoadSampleLab: "Carica Referto Epatico ed Ecografia di Esempio",
     btnAnalyseLab: "Spiega Referto con IA (Simulato)",
+    btnAnalyseLabLive: "Spiega Immagine Caricata con IA (API Vision Live)",
     labLoadingText: "Il motore OCR e IA simulato sta analizzando i marcatori (ALT / AST / Ecografia)...",
     badgeAILab: "Spiegazione Referti IA (Simulata)",
     labDisclaimer: "Solo spiegazione preliminare — la diagnosi finale spetta al medico",
@@ -847,7 +912,8 @@ const TRANSLATIONS = {
       "Vai su <strong>1. Vista Paziente</strong>, genera la valutazione pre-visita e clicca su 'Invia Sintesi al Pannello Medico'.",
     docSymptomsHeading: "Sintomi Riferiti dal Paziente",
     docAISharedHeading: "Consultazione Pre-Visita IA del Paziente (Condivisa)",
-    badgeAISimulated: "Assistito da IA",
+    badgeAISimulated: "Assistito da IA (Simulato)",
+    badgeAILive: "Assistito da IA (API Live)",
     docAIHiddenNotice:
       "<strong>Avviso:</strong> Il paziente ha scelto di <em>non</em> condividere la sintesi IA pre-visita. Sono mostrati solo i sintomi diretti.",
 
@@ -885,14 +951,16 @@ const TRANSLATIONS = {
     sharedDoctorReplyTitle: "Chiarimento / Correzione Clinica del Medico:",
     sharedOriginalAISuperseded: "Risposta IA Originale (Superata dal Medico):",
 
-    // Doctor Panel: Final Diagnosis & Reconciliation
+    // Doctor Panel: Final Diagnosis, Optional AI Action Plan & Reconciliation
     docFinalTitle: "Diagnosi Clinica Finale e Approvazione Schermo Condiviso",
     badgeDoctorControl: "Autorità Finale",
     docFinalEmpty: "Esamina i referti del paziente qui sopra prima di confermare la diagnosi finale e sbloccare lo Schermo Condiviso.",
-    docFinalDesc:
-      "Confronta l'ipotesi preliminare dell'IA (Lieve Steatosi Epatica) con la tua valutazione clinica, scegli se confermare o modificare, poi approva la visualizzazione in ambulatorio.",
+    docFinalDescTemplate:
+      "Confronta l'ipotesi preliminare dell'IA ({aiDraft}) con la tua valutazione clinica, scegli se confermare o modificare, poi approva la visualizzazione in ambulatorio.",
     decisionAgreeTitle: "Conferma Ipotesi Preliminare IA",
-    decisionAgreeSub: "Conferma Lieve Steatosi Epatica (NAFLD) — mostra l'allineamento medico-IA.",
+    decisionAgreeSubTemplate:
+      "Conferma \"{aiDraft}\" — mostra l'allineamento medico-IA sullo Schermo Condiviso.",
+    agreeSuffix: " — Confermata dal Medico",
     decisionOverrideTitle: "Supera l'Ipotesi IA (Usa Diagnosi Medica)",
     decisionOverrideSub: "Inserisci la tua diagnosi clinica e lascia che CoConsult spieghi al paziente il tuo ragionamento.",
     overrideDiagLabel: "Diagnosi Clinica Finale del Medico:",
@@ -905,9 +973,23 @@ const TRANSLATIONS = {
     reasonHistory: "Storia clinica complessiva e profilo metabolico individuale del paziente",
     customReasonLabel: "Nota Clinica Aggiuntiva (Opzionale):",
     customReasonPlaceholder: "Opzionale: aggiungi ulteriori dettagli clinici per la spiegazione al paziente...",
-    carePlanLabel: "Piano Terapeutico Finale e Prossimi Passi (Visibile sullo Schermo Condiviso):",
+    carePlanLabel: "Piano Clinico Principale e Indicazioni Mediche (Redatto dal Medico):",
     defaultCarePlan:
       "Sospendere antidolorifici non necessari e alcol, recuperare un sonno regolare e ripetere gli esami epatici (ALT/AST) tra 4 settimane per confermare la normalizzazione.",
+
+    // Optional Clinician-Triggered AI Action Plan
+    aiPlanPanelTitle: "Opzionale: Piano Pratico Domiciliare Assistito da IA",
+    aiPlanPanelDesc:
+      "Completamente opzionale. I medici possono saltare questo passaggio; se attivato, l'IA prepara passi pratici (es. dimagrimento, stop al fumo, igiene del sonno) basati sulla tua diagnosi da rivedere prima della proiezione, separati chiaramente dalle tue indicazioni.",
+    btnDraftAIPlan: "✨ Genera Passi Pratici Domiciliari con IA (Opzionale)",
+    btnRedraftAIPlan: "↻ Rigenera Passi Pratici IA",
+    btnClearAIPlan: "Rimuovi Bozza IA (Solo Indicazioni Mediche)",
+    aiPlanLoadingLive: "L'API Live sta redigendo i passi pratici domiciliari sulla base della tua diagnosi...",
+    aiPlanLoadingSim: "L'IA simulata sta generando i passi pratici domiciliari...",
+    aiPlanBadgeLive: "Bozza IA (API Live) · Revisionata dal Medico",
+    aiPlanBadgeSim: "Bozza IA (Simulata) · Revisionata dal Medico",
+    aiPlanEditHint: "Modificabile dal medico prima della proiezione sullo Schermo Condiviso",
+
     btnApproveShared: "Approva e Proietta sullo Schermo Condiviso →",
     btnRevokeShared: "Blocca / Pulisci Schermo Condiviso",
     docApproveFeedback: "✓ Approvato! Passa a '3. Schermo Condiviso' per rivedere la schermata con il paziente.",
@@ -925,9 +1007,12 @@ const TRANSLATIONS = {
     btnAccessibleOff: "Aa Modalità Semplificata / Testo Grande: ON",
     sharedDocDiagHeading: "Diagnosi Clinica Finale del Medico",
     badgeDoctorVerified: "Verificato dal Medico",
-    sharedCarePlanHeading: "Piano Condiviso e Prossimi Passi:",
+    badgeDoctorAuthored: "Redatto dal Medico",
+    sharedCarePlanHeading: "Indicazioni Principali e Piano del Medico:",
+    sharedAIPlanHeading: "Guida Pratica Domiciliare (Passi Dettagliati):",
     sharedLabHeading: "Sintesi Chiara dei Tuoi Esami",
     badgeAIVerifiedDisplay: "Spiegazione Assistita da IA (Simulata)",
+    badgeAIVerifiedDisplayLive: "Spiegazione Assistita da IA (API Vision Live)",
     sharedQuestionsHeading: "Domande del Paziente Verificate dal Medico",
     badgePatientShared: "Condivise e Verificate",
 
@@ -939,6 +1024,7 @@ const TRANSLATIONS = {
     overrideIntro:
       "Poiché un'IA legge solo numeri isolati, la valutazione clinica completa del medico ha sempre la priorità.",
     compareAILabel: "Bozza Preliminare IA (Simulata)",
+    compareAILabelLive: "Bozza Preliminare IA (API Vision Live)",
     compareAIDraftText: "Lieve Steatosi Epatica Non Alcolica (NAFLD)",
     compareDocLabel: "Diagnosi Finale del Medico (Autorevole)",
     btnWhyDifferent: "Perché la diagnosi del medico è diversa da quella dell'IA?",
@@ -947,7 +1033,7 @@ const TRANSLATIONS = {
     reconcileExpHeader: "Spiegazione IA a Supporto della Decisione Medica (Simulata)",
     reconcileExpHeaderLive: "Spiegazione IA a Supporto della Decisione Medica (API Live)",
     reconcileExpIntro:
-      "La bozza IA aveva ipotizzato una <strong>Steatosi Epatica</strong> solo perché valori elevati di ALT/AST con ecografia brillante sono lo schema statisticamente più frequente. Tuttavia, <strong>la diagnosi del medico è più accurata per il tuo caso specifico</strong> perché integra fattori reali invisibili all'algoritmo:",
+      "La bozza IA aveva ipotizzato <strong>{aiDraft}</strong> basandosi solo su valori numerici e immagini isolate. Tuttavia, <strong>la diagnosi del medico è più accurata per il tuo caso specifico</strong> perché integra fattori reali invisibili all'algoritmo:",
     reconcileExpFooter:
       "L'IA non può sostituire l'esame obiettivo né il contesto individuale: seguire il piano confermato dal medico è la scelta più sicura.",
 
@@ -975,6 +1061,16 @@ const TRANSLATIONS = {
     contextTitle: "Memoria di Contesto Multi-Fase (appState)",
     contextDesc:
       "Poiché le API LLM sono stateless (senza memoria), CoConsult mantiene lo stato clinico qui e lo allega a ogni richiesta Live API affinché l'IA ricordi sintomi, referti e decisioni del medico:",
+
+    // Simulated AI Home Action Plan Templates
+    aiActionTemplates: {
+      weight:
+        "1. Perdita di Peso Graduale: Punta a un calo sostenibile (0,5–1 kg a settimana) evitando diete drastiche che possono affaticare il fegato.\n2. Attività a Basso Impatto: Inizia con camminata veloce, nuoto o cyclette per 20–30 minuti, 4–5 volte a settimana per proteggere le articolazioni.\n3. Regola del Piatto: Riempi metà piatto con verdure, un quarto con proteine magre e riduci bevande zuccherate e spuntini notturni.\n4. Sonno e Supporto: Vai a dormire con regolarità prima delle 23:30 e valuta un ambulatorio nutrizionale se necessario.",
+      smoking:
+        "1. Scegli una Data di Stop: Fissa un giorno preciso entro 7 giorni ed elimina sigarette e accendini da casa e ufficio.\n2. Gestisci il Desiderio (Regola dei 5 Minuti): Respira profondamente, bevi acqua e cambia attività—il picco di craving dura pochi minuti.\n3. Supporto Clinico: Chiedi al medico o in farmacia informazioni su cerotti o gomme alla nicotina per raddoppiare le probabilità di successo.\n4. Monitoraggio: Segna i giorni senza fumo insieme al recupero del sonno e agli esami di controllo.",
+      general:
+        "1. Sicurezza Farmaci: Sospendi antidolorifici da banco e integratori non essenziali fino al controllo.\n2. Protezione Epatica: Evita completamente l'alcol per 4 settimane e preferisci pasti leggeri e poco elaborati.\n3. Recupero del Sonno: Anticipa gradualmente l'orario del sonno e limita gli schermi 45 minuti prima di dormire.\n4. Controllo a 4 Settimane: Prenota il prelievo di controllo (ALT/AST) a digiuno per confermare la normalizzazione.",
+    },
 
     // Sample Clinical Content
     sampleSymptomText:

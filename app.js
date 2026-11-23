@@ -1,11 +1,13 @@
 // =========================================================
-// CoConsult v3.2 (Final Prototype + Live Vision API)
+// CoConsult v3.3 (Final Prototype + Live Vision + Optional
+// Clinician-Triggered AI Action Plan & Dynamic Attribution)
 // Implemented: 3-view UI, trilingual i18n, preliminary doctor
 //   feedback & searchable EHR orders, tiered privacy Q&A with
 //   clinician audit/correction, diagnosis reconciliation,
-//   clinician-gated Shared Display, accessibility mode, and
-//   Option B (Default Simulated + Optional BYOK Live Vision &
-//   Text LLM API with cross-stage clinical context memory).
+//   optional clinician-reviewed AI home action plan with clear
+//   Doctor vs. AI attribution, clinician-gated Shared Display,
+//   accessibility mode, and Option B (Default Simulated +
+//   Optional BYOK Live Vision & Text LLM API with timeout).
 // =========================================================
 
 const VISION_I18N = {
@@ -90,10 +92,14 @@ const appState = {
   questionAudits: {}, // { [qaId]: { status: "unreviewed"|"accurate"|"corrected", doctorNote: "" } }
   shareQuestionsWithDoctor: false,
   labSentToDoctor: false,
-  // Final Diagnosis & Shared Display Gate
+  // Final Diagnosis, Optional AI Action Plan & Shared Display Gate
   doctorDecision: "override", // "agree" | "override"
   customDiagnosisEdited: false,
   carePlanEdited: false,
+  aiActionPlanEnabled: false,
+  aiActionPlanIsLive: false,
+  aiActionPlanTemplateKey: null,
+  aiActionPlanEdited: false,
   sharedApproved: false,
   approvedSnapshot: null,
   reconcileExplainerOpen: false,
@@ -130,6 +136,13 @@ function getQaAnswerHTML(entry, lang) {
     return escapeHTML(entry.liveAnswerText).replace(/\n/g, "<br>");
   }
   return TRANSLATIONS[lang].qaAnswers[entry.answerKey];
+}
+
+function getCurrentAIImpressionText(lang) {
+  if (appState.labUsedLive && appState.labLiveImpression) {
+    return appState.labLiveImpression;
+  }
+  return TRANSLATIONS[lang].compareAIDraftText;
 }
 
 function compressImageDataUrl(dataUrl, maxDim = 1280) {
@@ -200,20 +213,37 @@ function buildClinicalContextSnapshot() {
   if (appState.approvedSnapshot) {
     const snap = appState.approvedSnapshot;
     const dict = TRANSLATIONS[appState.lang];
-    const finalDiag = snap.useDefaultDiag
-      ? snap.decision === "agree"
-        ? dict.defaultAgreeDiag
-        : dict.defaultOverrideDiag
-      : snap.customDiagText;
+    const finalDiag = getSnapshotFinalDiagnosis(snap, appState.lang);
+    const corePlan = snap.useDefaultPlan
+      ? dict.defaultCarePlan
+      : snap.customPlanText || dict.defaultCarePlan;
+
     lines.push(`Doctor Final Decision (${snap.decision.toUpperCase()}): ${finalDiag}`);
+    lines.push(`Doctor Core Care Plan (Doctor-Authored): ${corePlan}`);
     if (snap.decision === "override") {
       const reasons = snap.reasonKeys.map((k) => dict[k]);
       if (snap.customReasonText) reasons.push(snap.customReasonText);
       lines.push(`Doctor Clinical Factors: ${reasons.join("; ")}`);
     }
+    if (snap.aiActionPlanText) {
+      lines.push(
+        `Optional AI Home Action Plan (Clinician-Reviewed): ${snap.aiActionPlanText}`
+      );
+    }
   }
 
   return lines.join("\n\n");
+}
+
+function getSnapshotFinalDiagnosis(snap, lang) {
+  const dict = TRANSLATIONS[lang];
+  if (snap.decision === "agree") {
+    if (snap.aiDraftLabel) {
+      return `${snap.aiDraftLabel}${dict.agreeSuffix}`;
+    }
+    return dict.defaultAgreeDiag;
+  }
+  return snap.useDefaultDiag ? dict.defaultOverrideDiag : snap.customDiagText;
 }
 
 function isLiveApiEnabled() {
@@ -233,30 +263,38 @@ async function callLiveLLM(systemPrompt, userPrompt, imageDataUrl = null) {
       ]
     : userPrompt;
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: model || "gpt-4o-mini",
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 35000);
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error("Empty response from API");
+    return content.trim();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Empty response from API");
-  return content.trim();
 }
 
 // ---------------------------------------------------------
@@ -270,6 +308,7 @@ const docPrelimNote = document.getElementById("doc-prelim-note");
 const docCustomDiagnosis = document.getElementById("doc-custom-diagnosis");
 const docCustomReason = document.getElementById("doc-custom-reason");
 const docCarePlan = document.getElementById("doc-care-plan");
+const docAiActionPlan = document.getElementById("doc-ai-action-plan");
 const apiKeyInput = document.getElementById("api-key-input");
 
 function updateApiStatusPill() {
@@ -285,6 +324,38 @@ function updateApiStatusPill() {
     btn.classList.add("simulated");
     textEl.textContent = dict.statusSimulated;
   }
+}
+
+function updateDynamicEngineLabels() {
+  const dict = TRANSLATIONS[appState.lang];
+  const willUseLiveVision =
+    isLiveApiEnabled() &&
+    !appState.labIsSample &&
+    (!appState.labLoaded || Boolean(appState.labImageDataUrl));
+
+  btnAnalyseLab.textContent = willUseLiveVision
+    ? dict.btnAnalyseLabLive
+    : dict.btnAnalyseLab;
+
+  btnDraftAIPlan.textContent = appState.aiActionPlanEnabled
+    ? dict.btnRedraftAIPlan
+    : dict.btnDraftAIPlan;
+
+  if (appState.aiActionPlanEnabled) {
+    aiPlanSourceBadge.textContent = appState.aiActionPlanIsLive
+      ? dict.aiPlanBadgeLive
+      : dict.aiPlanBadgeSim;
+    aiPlanSourceBadge.className = appState.aiActionPlanIsLive
+      ? "badge live-badge"
+      : "badge ai-badge";
+  }
+}
+
+function renderDoctorFinalDynamicCopy() {
+  const dict = TRANSLATIONS[appState.lang];
+  const aiDraft = getCurrentAIImpressionText(appState.lang);
+  docFinalDesc.textContent = dict.docFinalDescTemplate.replace("{aiDraft}", aiDraft);
+  decisionAgreeSub.textContent = dict.decisionAgreeSubTemplate.replace("{aiDraft}", aiDraft);
 }
 
 function applyLanguage(lang) {
@@ -321,8 +392,18 @@ function applyLanguage(lang) {
   if (!appState.carePlanEdited) {
     docCarePlan.value = dict.defaultCarePlan;
   }
+  if (
+    appState.aiActionPlanEnabled &&
+    !appState.aiActionPlanIsLive &&
+    !appState.aiActionPlanEdited &&
+    appState.aiActionPlanTemplateKey
+  ) {
+    docAiActionPlan.value = dict.aiActionTemplates[appState.aiActionPlanTemplateKey];
+  }
 
   updateApiStatusPill();
+  updateDynamicEngineLabels();
+  renderDoctorFinalDynamicCopy();
   renderQuickOrderChips();
   renderSelectedOrders();
 
@@ -462,6 +543,7 @@ btnSaveApiConfig.addEventListener("click", () => {
   }
 
   updateApiStatusPill();
+  updateDynamicEngineLabels();
   apiConfigFeedback.classList.remove("hidden");
 });
 
@@ -514,6 +596,25 @@ function matchSimulatedQAResponse(questionText) {
     return "markers";
   }
   return "fallback";
+}
+
+function matchSimulatedActionPlanKey(diagText, carePlanText) {
+  const combined = `${diagText} ${carePlanText}`.toLowerCase();
+  if (
+    ["smoke", "smoking", "cigarette", "tobacco", "nicotine", "戒烟", "抽烟", "吸烟", "烟瘾", "fumo", "fumare", "sigarett"].some(
+      (k) => combined.includes(k)
+    )
+  ) {
+    return "smoking";
+  }
+  if (
+    ["weight", "bmi", "obese", "obesity", "overweight", "fatty", "减肥", "减重", "肥胖", "太胖", "超重", "体重", "脂肪肝", "peso", "dimagrire", "obes", "steatosi"].some(
+      (k) => combined.includes(k)
+    )
+  ) {
+    return "weight";
+  }
+  return "general";
 }
 
 // ---------------------------------------------------------
@@ -645,6 +746,7 @@ const doctorEmptyState = document.getElementById("doctor-empty-state");
 const doctorPatientCard = document.getElementById("doctor-patient-card");
 const docPatientSymptoms = document.getElementById("doc-patient-symptoms");
 const docAISharedBox = document.getElementById("doc-ai-shared-box");
+const docAISharedBadge = document.getElementById("doc-ai-shared-badge");
 const docAISummaryContent = document.getElementById("doc-ai-summary-content");
 const docAIHiddenNotice = document.getElementById("doc-ai-hidden-notice");
 
@@ -666,15 +768,18 @@ docPrelimNote.addEventListener("input", () => {
 function renderDoctorDashboard() {
   if (!appState.submittedToDoctor) return;
 
+  const dict = TRANSLATIONS[appState.lang];
   doctorEmptyState.classList.add("hidden");
   doctorPatientCard.classList.remove("hidden");
   docPatientSymptoms.textContent = appState.patientSymptoms;
 
   if (appState.shareAIWithDoctor && (appState.aiCaseType || appState.livePreVisitHTML)) {
-    docAISummaryContent.innerHTML =
-      appState.preVisitUsedLive && appState.livePreVisitHTML
-        ? appState.livePreVisitHTML
-        : getSimulatedPreVisitHTML(appState.aiCaseType, appState.lang);
+    const usedLive = appState.preVisitUsedLive && Boolean(appState.livePreVisitHTML);
+    docAISharedBadge.textContent = usedLive ? dict.badgeAILive : dict.badgeAISimulated;
+    docAISharedBadge.className = usedLive ? "badge live-badge" : "badge ai-badge";
+    docAISummaryContent.innerHTML = usedLive
+      ? appState.livePreVisitHTML
+      : getSimulatedPreVisitHTML(appState.aiCaseType, appState.lang);
     docAISharedBox.classList.remove("hidden");
     docAIHiddenNotice.classList.add("hidden");
   } else {
@@ -896,10 +1001,12 @@ labFileInput.addEventListener("change", (event) => {
       appState.labImageDataUrl = compressed;
       uploadedImageThumb.src = compressed;
       uploadedImageThumb.classList.remove("hidden");
+      updateDynamicEngineLabels();
     };
     reader.readAsDataURL(file);
   } else {
     uploadedImageThumb.classList.add("hidden");
+    updateDynamicEngineLabels();
   }
 });
 
@@ -913,6 +1020,7 @@ btnLoadSampleLab.addEventListener("click", () => {
   uploadedFileName.textContent = TRANSLATIONS[appState.lang].sampleFileLabel;
   uploadedImageThumb.classList.add("hidden");
   uploadedFilePreview.classList.remove("hidden");
+  updateDynamicEngineLabels();
 });
 
 function formatLiveLabReport(rawText, lang) {
@@ -1067,13 +1175,13 @@ btnAnalyseLab.addEventListener("click", async () => {
 
       appState.labAnalysed = true;
       renderLabOutput();
+      renderDoctorFinalDynamicCopy();
       labAILoading.classList.add("hidden");
       labAIResult.classList.remove("hidden");
       refreshContextInspector();
       if (appState.labSentToDoctor) renderDoctorLabSection();
       return;
     } else {
-      // Uploaded a non-image file (e.g. PDF) while in Live API mode
       resetLabAnalysisCache();
       appState.labNoticeKey = "pdfNote";
     }
@@ -1088,6 +1196,7 @@ btnAnalyseLab.addEventListener("click", async () => {
   setTimeout(() => {
     appState.labAnalysed = true;
     renderLabOutput();
+    renderDoctorFinalDynamicCopy();
     labAILoading.classList.add("hidden");
     labAIResult.classList.remove("hidden");
     refreshContextInspector();
@@ -1337,6 +1446,7 @@ function renderDoctorLabSection() {
 
   docFinalEmpty.classList.add("hidden");
   docFinalControls.classList.remove("hidden");
+  renderDoctorFinalDynamicCopy();
 
   if (!appState.shareQuestionsWithDoctor) {
     docQuestionsPrivateNotice.classList.remove("hidden");
@@ -1361,15 +1471,26 @@ btnSendLabDoctor.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------
-// 10. Doctor Final Diagnosis, Override & Shared Screen Gate
+// 10. Doctor Final Diagnosis, Optional AI Action Plan & Gate
 // ---------------------------------------------------------
+const docFinalDesc = document.getElementById("doc-final-desc");
 const decisionAgree = document.getElementById("decision-agree");
+const decisionAgreeSub = document.getElementById("decision-agree-sub");
 const decisionOverride = document.getElementById("decision-override");
 const overridePanel = document.getElementById("override-panel");
 const reasonMeds = document.getElementById("reason-meds");
 const reasonExam = document.getElementById("reason-exam");
 const reasonLifestyle = document.getElementById("reason-lifestyle");
 const reasonHistory = document.getElementById("reason-history");
+
+const btnDraftAIPlan = document.getElementById("btn-draft-ai-plan");
+const btnClearAIPlan = document.getElementById("btn-clear-ai-plan");
+const aiPlanLoading = document.getElementById("ai-plan-loading");
+const aiPlanLoadingText = document.getElementById("ai-plan-loading-text");
+const aiPlanFallbackNote = document.getElementById("ai-plan-fallback-note");
+const aiPlanEditorWrap = document.getElementById("ai-plan-editor-wrap");
+const aiPlanSourceBadge = document.getElementById("ai-plan-source-badge");
+
 const btnApproveShared = document.getElementById("btn-approve-shared");
 const btnRevokeShared = document.getElementById("btn-revoke-shared");
 const docApproveFeedback = document.getElementById("doc-approve-feedback");
@@ -1380,6 +1501,9 @@ docCustomDiagnosis.addEventListener("input", () => {
 docCarePlan.addEventListener("input", () => {
   appState.carePlanEdited = true;
 });
+docAiActionPlan.addEventListener("input", () => {
+  appState.aiActionPlanEdited = true;
+});
 
 function updateDecisionUI() {
   appState.doctorDecision = decisionOverride.checked ? "override" : "agree";
@@ -1388,6 +1512,77 @@ function updateDecisionUI() {
 
 decisionAgree.addEventListener("change", updateDecisionUI);
 decisionOverride.addEventListener("change", updateDecisionUI);
+
+// Optional Clinician-Triggered AI Action Plan Drafting
+btnDraftAIPlan.addEventListener("click", async () => {
+  const dict = TRANSLATIONS[appState.lang];
+  const diagText = decisionOverride.checked
+    ? docCustomDiagnosis.value.trim() || dict.defaultOverrideDiag
+    : getCurrentAIImpressionText(appState.lang);
+  const corePlanText = docCarePlan.value.trim() || dict.defaultCarePlan;
+  const templateKey = matchSimulatedActionPlanKey(diagText, corePlanText);
+
+  aiPlanFallbackNote.classList.add("hidden");
+  aiPlanEditorWrap.classList.add("hidden");
+
+  if (isLiveApiEnabled()) {
+    aiPlanLoadingText.textContent = dict.aiPlanLoadingLive;
+    aiPlanLoading.classList.remove("hidden");
+
+    try {
+      const context = buildClinicalContextSnapshot();
+      const sysPrompt = `You are CoConsult, an assistant drafting an optional, practical home execution guide for a patient ON BEHALF of their doctor. Reply in ${getLanguageName(appState.lang)} as 4 concise numbered steps (plain text, no markdown asterisks). Strictly align with the doctor's diagnosis and core orders below (for example, give concrete safe weight-loss / knee-friendly exercise steps if high BMI or weight loss is mentioned, smoking cessation steps if smoking is mentioned, or sleep/medication recovery steps). Never contradict the doctor or prescribe specific prescription drugs.`;
+      const userPrompt = `Doctor's Final Diagnosis: ${diagText}\nDoctor's Core Orders: ${corePlanText}\n\nPrior Clinical Context:\n${context}`;
+      const reply = await callLiveLLM(sysPrompt, userPrompt);
+
+      appState.aiActionPlanEnabled = true;
+      appState.aiActionPlanIsLive = true;
+      appState.aiActionPlanTemplateKey = null;
+      appState.aiActionPlanEdited = false;
+      docAiActionPlan.value = reply;
+    } catch {
+      appState.aiActionPlanEnabled = true;
+      appState.aiActionPlanIsLive = false;
+      appState.aiActionPlanTemplateKey = templateKey;
+      appState.aiActionPlanEdited = false;
+      docAiActionPlan.value = dict.aiActionTemplates[templateKey];
+      aiPlanFallbackNote.textContent = dict.apiFallbackNotice;
+      aiPlanFallbackNote.classList.remove("hidden");
+    } finally {
+      aiPlanLoading.classList.add("hidden");
+      aiPlanEditorWrap.classList.remove("hidden");
+      btnClearAIPlan.classList.remove("hidden");
+      updateDynamicEngineLabels();
+    }
+  } else {
+    aiPlanLoadingText.textContent = dict.aiPlanLoadingSim;
+    aiPlanLoading.classList.remove("hidden");
+
+    setTimeout(() => {
+      appState.aiActionPlanEnabled = true;
+      appState.aiActionPlanIsLive = false;
+      appState.aiActionPlanTemplateKey = templateKey;
+      appState.aiActionPlanEdited = false;
+      docAiActionPlan.value = dict.aiActionTemplates[templateKey];
+      aiPlanLoading.classList.add("hidden");
+      aiPlanEditorWrap.classList.remove("hidden");
+      btnClearAIPlan.classList.remove("hidden");
+      updateDynamicEngineLabels();
+    }, 450);
+  }
+});
+
+btnClearAIPlan.addEventListener("click", () => {
+  appState.aiActionPlanEnabled = false;
+  appState.aiActionPlanIsLive = false;
+  appState.aiActionPlanTemplateKey = null;
+  appState.aiActionPlanEdited = false;
+  docAiActionPlan.value = "";
+  aiPlanEditorWrap.classList.add("hidden");
+  aiPlanFallbackNote.classList.add("hidden");
+  btnClearAIPlan.classList.add("hidden");
+  updateDynamicEngineLabels();
+});
 
 btnApproveShared.addEventListener("click", () => {
   const dict = TRANSLATIONS[appState.lang];
@@ -1423,6 +1618,10 @@ btnApproveShared.addEventListener("click", () => {
         .filter(Boolean)
     : [];
 
+  const optionalAIPlanText = appState.aiActionPlanEnabled
+    ? docAiActionPlan.value.trim()
+    : "";
+
   appState.approvedSnapshot = {
     decision,
     useDefaultDiag: decision === "agree" || !appState.customDiagnosisEdited,
@@ -1431,8 +1630,16 @@ btnApproveShared.addEventListener("click", () => {
     customReasonText: docCustomReason.value.trim(),
     useDefaultPlan: !appState.carePlanEdited,
     customPlanText: docCarePlan.value.trim(),
+    aiActionPlanText: optionalAIPlanText,
+    aiActionPlanIsLive: appState.aiActionPlanIsLive,
+    aiActionPlanTemplateKey: appState.aiActionPlanTemplateKey,
+    aiActionPlanEdited: appState.aiActionPlanEdited,
     auditedQA,
-    aiDraftLabel: appState.labUsedLive && appState.labLiveImpression ? appState.labLiveImpression : null,
+    labUsedLive: appState.labUsedLive,
+    aiDraftLabel:
+      appState.labUsedLive && appState.labLiveImpression
+        ? appState.labLiveImpression
+        : null,
   };
 
   appState.sharedApproved = true;
@@ -1467,7 +1674,11 @@ const sharedContentWrapper = document.getElementById("shared-content-wrapper");
 const btnToggleAccessible = document.getElementById("btn-toggle-accessible");
 const sharedFinalDiagnosis = document.getElementById("shared-final-diagnosis");
 const sharedCarePlan = document.getElementById("shared-care-plan");
+const sharedAIPlanBox = document.getElementById("shared-ai-plan-box");
+const sharedAIPlanBadge = document.getElementById("shared-ai-plan-badge");
+const sharedAIPlanContent = document.getElementById("shared-ai-plan-content");
 const sharedReconciliationBox = document.getElementById("shared-reconciliation-box");
+const sharedLabBadge = document.getElementById("shared-lab-badge");
 const sharedLabSummary = document.getElementById("shared-lab-summary");
 const sharedQuestionsCard = document.getElementById("shared-questions-card");
 const sharedQuestionsList = document.getElementById("shared-questions-list");
@@ -1499,18 +1710,39 @@ function renderSharedDisplay() {
   const dict = TRANSLATIONS[appState.lang];
   const snap = appState.approvedSnapshot;
 
-  const finalDiagDisplay = snap.useDefaultDiag
-    ? snap.decision === "agree"
-      ? dict.defaultAgreeDiag
-      : dict.defaultOverrideDiag
-    : snap.customDiagText;
-
+  const finalDiagDisplay = getSnapshotFinalDiagnosis(snap, appState.lang);
   sharedFinalDiagnosis.textContent = finalDiagDisplay;
   sharedCarePlan.textContent = snap.useDefaultPlan
     ? dict.defaultCarePlan
     : snap.customPlanText || dict.defaultCarePlan;
 
+  // Optional AI-Drafted Home Execution Guide (Strict Doctor vs. AI Attribution)
+  if (snap.aiActionPlanText) {
+    const planText =
+      !snap.aiActionPlanIsLive &&
+      !snap.aiActionPlanEdited &&
+      snap.aiActionPlanTemplateKey
+        ? dict.aiActionTemplates[snap.aiActionPlanTemplateKey]
+        : snap.aiActionPlanText;
+
+    sharedAIPlanBadge.textContent = snap.aiActionPlanIsLive
+      ? dict.aiPlanBadgeLive
+      : dict.aiPlanBadgeSim;
+    sharedAIPlanBadge.className = snap.aiActionPlanIsLive
+      ? "badge live-badge"
+      : "badge ai-badge";
+    sharedAIPlanContent.textContent = planText;
+    sharedAIPlanBox.classList.remove("hidden");
+  } else {
+    sharedAIPlanBox.classList.add("hidden");
+  }
+
+  // Dynamic AI Draft Label & Engine Badge (No residual "Simulated" when Live Vision was used)
   const aiDraftDisplay = snap.aiDraftLabel || dict.compareAIDraftText;
+  const compareAIBadgeText = snap.labUsedLive
+    ? dict.compareAILabelLive
+    : dict.compareAILabel;
+  const compareAIBadgeClass = snap.labUsedLive ? "badge live-badge" : "badge ai-badge";
 
   if (snap.decision === "agree") {
     sharedReconciliationBox.className = "card reconcile-aligned";
@@ -1546,11 +1778,15 @@ function renderSharedDisplay() {
         <p>${escapeHTML(appState.reconcileLiveText).replace(/\n/g, "<br>")}</p>
       `;
     } else {
+      const introHTML = dict.reconcileExpIntro.replace(
+        "{aiDraft}",
+        escapeHTML(aiDraftDisplay)
+      );
       explanationInner = `
         <div class="ai-card-header">
           <span class="badge ai-badge">${escapeHTML(dict.reconcileExpHeader)}</span>
         </div>
-        <p>${dict.reconcileExpIntro}</p>
+        <p>${introHTML}</p>
         <ul>
           ${reasonBullets}
           ${extraBullet}
@@ -1564,7 +1800,7 @@ function renderSharedDisplay() {
       <p class="helper-text">${escapeHTML(dict.overrideIntro)}</p>
       <div class="compare-grid">
         <div class="compare-box ai-side">
-          <span class="badge ai-badge">${escapeHTML(dict.compareAILabel)}</span>
+          <span class="${compareAIBadgeClass}">${escapeHTML(compareAIBadgeText)}</span>
           <p><strong>${escapeHTML(aiDraftDisplay)}</strong></p>
         </div>
         <div class="compare-box doc-side">
@@ -1579,8 +1815,14 @@ function renderSharedDisplay() {
     `;
   }
 
+  // Verified Lab Summary Badge & Content
+  sharedLabBadge.textContent = snap.labUsedLive
+    ? dict.badgeAIVerifiedDisplayLive
+    : dict.badgeAIVerifiedDisplay;
+  sharedLabBadge.className = snap.labUsedLive ? "badge live-badge" : "badge ai-badge";
   sharedLabSummary.innerHTML = getActiveLabHTML(appState.lang);
 
+  // Clinician-Audited Patient Discussion Questions
   if (snap.auditedQA && snap.auditedQA.length > 0) {
     sharedQuestionsCard.classList.remove("hidden");
     sharedQuestionsList.innerHTML = snap.auditedQA

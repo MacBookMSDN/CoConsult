@@ -113,7 +113,7 @@
 
           <div class="action-row">
             <button id="btn-load-sample-lab" class="btn secondary" type="button" data-i18n="btnLoadSampleLab"></button>
-            <button id="btn-analyse-lab" class="btn primary" type="button" data-i18n="btnAnalyseLab"></button>
+            <button id="btn-analyse-lab" class="btn primary" type="button"></button>
           </div>
 
           <div id="uploaded-file-preview" class="file-preview hidden">
@@ -198,7 +198,7 @@
           <div id="doc-ai-shared-box" class="info-block ai-review-block hidden">
             <div class="block-title-row">
               <h3 data-i18n="docAISharedHeading"></h3>
-              <span class="badge ai-badge" data-i18n="badgeAISimulated"></span>
+              <span id="doc-ai-shared-badge" class="badge ai-badge"></span>
             </div>
             <div id="doc-ai-summary-content"></div>
           </div>
@@ -210,7 +210,7 @@
             <h3 data-i18n="ordersPanelTitle"></h3>
             <p class="helper-text" data-i18n="ordersPanelDesc"></p>
 
-            <!-- NEW: Clinician Preliminary Impression Feedback -->
+            <!-- Clinician Preliminary Impression Feedback -->
             <label for="doc-prelim-note" class="input-label" data-i18n="docPrelimLabel"></label>
             <textarea id="doc-prelim-note" rows="3"></textarea>
 
@@ -255,7 +255,7 @@
         <div id="doc-lab-content" class="hidden">
           <div id="doc-lab-summary-body"></div>
 
-          <!-- NEW: Auditable Shared Q&A Cards -->
+          <!-- Auditable Shared Q&A Cards -->
           <div class="info-block">
             <h3 data-i18n="docQuestionsHeading"></h3>
             <p class="helper-text" data-i18n="docQuestionsAuditHint"></p>
@@ -268,7 +268,7 @@
         </div>
       </div>
 
-      <!-- Final Clinical Diagnosis, Override & Shared Screen Gate -->
+      <!-- Final Clinical Diagnosis, Override, Optional AI Action Plan & Shared Screen Gate -->
       <div class="card">
         <div class="card-header">
           <h2 data-i18n="docFinalTitle"></h2>
@@ -280,14 +280,14 @@
         </div>
 
         <div id="doc-final-controls" class="hidden">
-          <p class="helper-text" data-i18n="docFinalDesc"></p>
+          <p id="doc-final-desc" class="helper-text"></p>
 
           <div class="decision-grid">
             <label class="decision-option">
               <input type="radio" name="doc-decision" id="decision-agree" value="agree" />
               <div class="decision-card">
                 <strong data-i18n="decisionAgreeTitle"></strong>
-                <small data-i18n="decisionAgreeSub"></small>
+                <small id="decision-agree-sub"></small>
               </div>
             </label>
             <label class="decision-option">
@@ -327,8 +327,33 @@
             <textarea id="doc-custom-reason" rows="2"></textarea>
           </div>
 
+          <!-- Clinician-Authored Core Care Plan -->
           <label for="doc-care-plan" class="input-label" data-i18n="carePlanLabel"></label>
           <textarea id="doc-care-plan" rows="3"></textarea>
+
+          <!-- NEW: Optional Clinician-Triggered AI Action Plan -->
+          <div class="ai-assist-panel">
+            <div class="ai-assist-header">
+              <strong data-i18n="aiPlanPanelTitle"></strong>
+              <p class="helper-text" style="margin:4px 0 0;" data-i18n="aiPlanPanelDesc"></p>
+            </div>
+            <div class="action-row" style="margin-top:10px;">
+              <button id="btn-draft-ai-plan" class="btn ai-btn" type="button"></button>
+              <button id="btn-clear-ai-plan" class="btn secondary hidden" type="button" data-i18n="btnClearAIPlan"></button>
+            </div>
+            <div id="ai-plan-loading" class="loading-box hidden">
+              <div class="spinner"></div>
+              <span id="ai-plan-loading-text"></span>
+            </div>
+            <div id="ai-plan-fallback-note" class="notice-warning hidden"></div>
+            <div id="ai-plan-editor-wrap" class="ai-plan-editor hidden">
+              <div class="ai-card-header" style="margin-bottom:6px;">
+                <span id="ai-plan-source-badge" class="badge ai-badge"></span>
+                <span class="disclaimer-tag" data-i18n="aiPlanEditHint"></span>
+              </div>
+              <textarea id="doc-ai-action-plan" rows="6"></textarea>
+            </div>
+          </div>
 
           <div class="action-row">
             <button id="btn-approve-shared" class="btn success" type="button" data-i18n="btnApproveShared"></button>
@@ -364,16 +389,30 @@
         </div>
 
         <div id="shared-content-wrapper">
-          <!-- 1. Doctor Final Diagnosis -->
+          <!-- 1. Doctor Final Diagnosis + Strict Attribution for Care Plan -->
           <div class="card shared-doctor-card">
             <div class="card-header">
               <h3 data-i18n="sharedDocDiagHeading"></h3>
               <span class="badge doctor-verified-badge" data-i18n="badgeDoctorVerified"></span>
             </div>
             <p id="shared-final-diagnosis" class="final-diagnosis-text"></p>
+
+            <!-- Doctor-Authored Core Care Plan -->
             <div class="care-plan-box">
-              <strong data-i18n="sharedCarePlanHeading"></strong>
+              <div class="care-plan-header">
+                <strong data-i18n="sharedCarePlanHeading"></strong>
+                <span class="badge doctor-authored-badge" data-i18n="badgeDoctorAuthored"></span>
+              </div>
               <p id="shared-care-plan"></p>
+            </div>
+
+            <!-- Optional AI-Drafted Home Execution Guide (Shown ONLY if clinician opted in) -->
+            <div id="shared-ai-plan-box" class="shared-ai-plan-box hidden">
+              <div class="ai-card-header" style="margin-bottom:8px;">
+                <strong data-i18n="sharedAIPlanHeading"></strong>
+                <span id="shared-ai-plan-badge" class="badge ai-badge"></span>
+              </div>
+              <div id="shared-ai-plan-content" class="shared-ai-plan-content"></div>
             </div>
           </div>
 
@@ -384,7 +423,7 @@
           <div class="card">
             <div class="card-header">
               <h3 data-i18n="sharedLabHeading"></h3>
-              <span class="badge ai-badge" data-i18n="badgeAIVerifiedDisplay"></span>
+              <span id="shared-lab-badge" class="badge ai-badge"></span>
             </div>
             <div id="shared-lab-summary"></div>
           </div>
