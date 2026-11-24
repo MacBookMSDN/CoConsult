@@ -42,3 +42,11 @@ No API keys are committed to this repository. To inspect live LLM text and image
 Endpoint: [https://generativelanguage.googleapis.com/v1beta/openai/chat/completions](https://generativelanguage.googleapis.com/v1beta/openai/chat/completions)
 Model:    gemini-2.5-flash
 API Key:  <your-own-key>
+AI Assistance
+
+* **Tool Used:** Google Gemini (conversational AI assistant).
+* **Division of Work:** I defined the interaction problem, clinical workflow, human-centred design choices, scope trade-offs, and all reference selections. I used AI mainly as a productivity assistant for repetitive and structural tasks: scaffolding boilerplate HTML (`div`/card layouts) and CSS styling, structuring JavaScript event handlers and API fetch boilerplate, formatting the trilingual UI dictionary (`EN`/`中文`/`IT`), generating Mermaid diagram syntax, and polishing English phrasing in the report and README.
+* **Key Checks, Corrections, and Adaptations Made by the Author:**
+  1. **Replacing rigid AI defaults with realistic clinical workflows:** Rejected early AI-scaffolded layouts that offered only three hardcoded test checkboxes and opt-out Q&A sharing; redesigned them into a searchable EHR test catalog with clinician preliminary impressions and private-by-default Q&A.
+  2. **Protecting clinician authority and patient safety:** Identified that showing only patient questions hid potential AI misinformation from doctors, and that auto-generating care plans could undermine clinician autonomy. Directed the addition of full clinician Q&A auditing/correction (`v3.1`) and strictly clinician-optional AI home execution plans with separated Doctor vs. AI badges (`v3.3`).
+  3. **Catching live-test UI bugs and setting boundaries:** Testing `v3.2` with a photographed paper lab report revealed leftover "Simulated" badges on the Shared Display and hardcoded fatty-liver text in the doctor panel, which were corrected in `v3.3`. Deliberately excluded automatic translation of doctor-authored notes during language switches to avoid clinical mistranslation risks.
