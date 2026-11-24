@@ -44,7 +44,7 @@ Model:    gemini-2.5-flash
 API Key:  <your-own-key>
 
 
-AI Assistance
+## AI Assistance
 
 * **Tool Used:** Google Gemini (conversational AI assistant).
 * **Division of Work:** I defined the interaction problem, clinical workflow, human-centred design choices, scope trade-offs, and all reference selections. I used AI mainly as a productivity assistant for repetitive and structural tasks: scaffolding boilerplate HTML (`div`/card layouts) and CSS styling, structuring JavaScript event handlers and API fetch boilerplate, formatting the trilingual UI dictionary (`EN`/`中文`/`IT`), generating Mermaid diagram syntax, and polishing English phrasing in the report and README.
