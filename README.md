@@ -42,6 +42,8 @@ No API keys are committed to this repository. To inspect live LLM text and image
 Endpoint: [https://generativelanguage.googleapis.com/v1beta/openai/chat/completions](https://generativelanguage.googleapis.com/v1beta/openai/chat/completions)
 Model:    gemini-2.5-flash
 API Key:  <your-own-key>
+
+
 AI Assistance
 
 * **Tool Used:** Google Gemini (conversational AI assistant).
